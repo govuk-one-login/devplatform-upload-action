@@ -26,7 +26,7 @@ Pull in the action in your workflow as below, making sure to specify the release
 
 ```yaml
 - name: Deploy SAM app
-  uses: alphagov/di-devplatform-upload-action@<version_number>
+  uses: govuk-one-login/devplatform-upload-action@<version_number>
   with:
     artifact-bucket-name: ${{ secrets.ARTIFACT_BUCKET_NAME }}
     signing-profile-name: ${{ secrets.SIGNING_PROFILE_NAME }}
