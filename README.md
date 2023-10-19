@@ -10,7 +10,7 @@ It adds the following metadata to the S3 object:
 - repository - The git repository where the file was loaded from.
 - commitmessage - The first 50 characters of the git commit message, trimmed to the following regex: `tr -dc '[:alnum:]- '`
 - commitsha - The full git commitsha of the git commit.
-- mergetime - Time in UTC when git merge happend.
+- mergetime - Time in UTC when git merge happened.
 - skipcanary - 0 or 1 for skipcanary.
 
 ## Action Inputs
@@ -52,12 +52,12 @@ We follow [recommended best practices](https://docs.github.com/en/actions/creati
 ### Non-breaking changes
 
 Release a new minor or patch version as appropriate. Then, update the base major version release (and any minor versions)
-to point to this latest commit. For example, if the latest major release is v2 and you have added a non-breaking feature,
+to point to this latest commit. For example, if the latest major release is v2, and you have added a non-breaking feature,
 release v2.1.0 and point v2 to the same commit as v2.1.0.
 
 NOTE: Until v3 is released, you will need to point both v1 and v2 to the latest version since there are no breaking changes between them.
 
-NOTE: In regards to Dependabot subcribers, Dependabot does not pick up and raise PRs for `PATCH` versions (i.e v3.8.1) of a release ensure consumers are nofitied.
+NOTE: In regard to Dependabot subscribers, Dependabot does not pick up and raise PRs for `PATCH` versions (i.e. v3.8.1) of a release ensure consumers are notified.
 
 ### Breaking changes
 
