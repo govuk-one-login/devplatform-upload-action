@@ -26,6 +26,14 @@ COMMIT_MSG=$(echo $COMMIT_MESSAGE | tr '\n' ' ' | tr -dc '[:alnum:]- ' | cut -c1
 # Gets merge time to main
 MERGE_TIME=$(git log -1 --format=%cd --date=format:'%Y-%m-%d %H:%M:%S')
 
+# Sanitise commit message and search for canary deployment instructions
+MSG=$(echo $COMMIT_MESSAGE | tr '\n' ' ' | tr '[:upper:]' '[:lower:]')
+if [[ $MSG =~ "[skip canary]" || $MSG =~ "[canary skip]" || $MSG =~ "[no canary]" ]]; then
+    SKIP_CANARY_DEPLOYMENT=1
+else
+    SKIP_CANARY_DEPLOYMENT=0
+fi
+
 echo "Writing Lambda provenance"
 yq '.Resources.* | select(has("Type") and .Type == "AWS::Serverless::Function") | .Properties.CodeUri' cf-template.yaml \
     | xargs -L1 -I{} aws s3 cp "{}" "{}" --metadata "repository=$GITHUB_REPOSITORY,commitsha=$GITHUB_SHA,committag=$GIT_TAG,commitmessage=$COMMIT_MSG"
@@ -37,4 +45,4 @@ echo "Zipping the CloudFormation template"
 zip template.zip cf-template.yaml
 
 echo "Uploading zipped CloudFormation artifact to S3"
-aws s3 cp template.zip "s3://$ARTIFACT_BUCKET/template.zip" --metadata "repository=$GITHUB_REPOSITORY,commitsha=$GITHUB_SHA,committag=$GIT_TAG,commitmessage=$COMMIT_MSG,mergetime=$MERGE_TIME"
+aws s3 cp template.zip "s3://$ARTIFACT_BUCKET/template.zip" --metadata "repository=$GITHUB_REPOSITORY,commitsha=$GITHUB_SHA,committag=$GIT_TAG,commitmessage=$COMMIT_MSG,mergetime=$MERGE_TIME,skipcanary=$SKIP_CANARY_DEPLOYMENT"
