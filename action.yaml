@@ -26,5 +26,6 @@ runs:
         SIGNING_PROFILE: ${{ inputs.signing-profile-name }}
         TEMPLATE_FILE: ${{ inputs.template-file }}
         COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        GITHUB_ACTOR: ${{ github.actor }}
       run: ${{ github.action_path }}/scripts/upload.sh
       shell: bash
