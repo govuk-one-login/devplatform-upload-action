@@ -23,8 +23,14 @@ fi
 GIT_TAG=$(git describe --tags --first-parent --always)
 # Cleaning the commit message to remove special characters
 COMMIT_MSG=$(echo $COMMIT_MESSAGE | tr '\n' ' ' | tr -dc '[:alnum:]- ' | cut -c1-50)
+# COMMIT_MSG may be empty if action triggered by workflow_dispatch
+if [[ -z "$COMMIT_MESSAGE" ]]; then
+    COMMIT_MESSAGE=$(git log --pretty=format:"%f" -1)
+fi
 # Gets merge time to main
 MERGE_TIME=$(git log -1 --format=%cd --date=format:'%Y-%m-%d %H:%M:%S')
+GITHUB_USER=$GITHUB_ACTOR # this will be last committer if a merge, or whoever triggered workflow_dispatch
+GIT_COMMITTER=$(git log -1 --no-merges --pretty=format:"%cN - %ce") # this may be different to merge, and may be more indicative username from local git config
 
 # Sanitise commit message and search for canary deployment instructions
 MSG=$(echo $COMMIT_MESSAGE | tr '\n' ' ' | tr '[:upper:]' '[:lower:]')
@@ -36,10 +42,10 @@ fi
 
 echo "Writing Lambda provenance"
 yq '.Resources.* | select(has("Type") and .Type == "AWS::Serverless::Function") | .Properties.CodeUri' cf-template.yaml \
-    | xargs -L1 -I{} aws s3 cp "{}" "{}" --metadata "repository=$GITHUB_REPOSITORY,commitsha=$GITHUB_SHA,committag=$GIT_TAG,commitmessage=$COMMIT_MSG"
+    | xargs -L1 -I{} aws s3 cp "{}" "{}" --metadata "repository=$GITHUB_REPOSITORY,commitsha=$GITHUB_SHA,committag=$GIT_TAG,commitmessage=$COMMIT_MSG,githubauthor=$GITHUB_USER,gitcommitter=$GIT_COMMITTER"
 echo "Writing Lambda Layer provenance"
 yq '.Resources.* | select(has("Type") and .Type == "AWS::Serverless::LayerVersion") | .Properties.ContentUri' cf-template.yaml \
-    | xargs -L1 -I{} aws s3 cp "{}" "{}" --metadata "repository=$GITHUB_REPOSITORY,commitsha=$GITHUB_SHA,committag=$GIT_TAG,commitmessage=$COMMIT_MSG"
+    | xargs -L1 -I{} aws s3 cp "{}" "{}" --metadata "repository=$GITHUB_REPOSITORY,commitsha=$GITHUB_SHA,committag=$GIT_TAG,commitmessage=$COMMIT_MSG,githubauthor=$GITHUB_USER,gitcommitter=$GIT_COMMITTER"
 
 echo "Zipping the CloudFormation template"
 zip template.zip cf-template.yaml
