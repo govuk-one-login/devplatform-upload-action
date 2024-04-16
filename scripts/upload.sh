@@ -5,7 +5,7 @@ set -eu
 echo "Parsing resources to be signed"
 RESOURCES="$(yq '.Resources.* | select(has("Type") and .Type == "AWS::Serverless::Function" or .Type == "AWS::Serverless::LayerVersion") | path | .[1]' "$TEMPLATE_FILE" | xargs)"
 read -ra LIST <<< "$RESOURCES"
-
+echo "getting commitm essage"
 COMMIT_MESSAGE=$(git show -s --format=%s)
 
 # Construct the signing-profiles argument list
