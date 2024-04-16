@@ -25,9 +25,12 @@ GIT_TAG=$(git describe --tags --first-parent --always)
 COMMIT_MSG=$(echo $COMMIT_MESSAGE | tr '\n' ' ' | tr -dc '[:alnum:]- ' | cut -c1-50)
 # Gets merge time to main
 MERGE_TIME=$(git log -1 --format=%cd --date=format:'%Y-%m-%d %H:%M:%S')
-
+echo "*******PRINTING COMMITMESSAGE NOW*******"
+echo $COMMIT_MESSAGE
 # Sanitise commit message and search for canary deployment instructions
 MSG=$(echo $COMMIT_MESSAGE | tr '\n' ' ' | tr '[:upper:]' '[:lower:]')
+echo "*******PRINTING MSG NOW*******"
+echo $MSG
 if [[ $MSG =~ "[skip canary]" || $MSG =~ "[canary skip]" || $MSG =~ "[no canary]" ]]; then
     SKIP_CANARY_DEPLOYMENT=1
 else
