@@ -54,10 +54,7 @@ for releasing new versions of the action.
 ### Non-breaking changes
 
 Release a new minor or patch version as appropriate, then update the base major version release (and any minor versions)
-to point to this latest appropriate commit. e.g.: If the latest major release is v2, and you have added a non-breaking
-feature, release v2.1.0 and point v2 to the same commit as v2.1.0.
-
-NOTE: Until v3 is released, you will need to point both v1 and v2 to the latest version since there are no breaking changes between them.
+to point to this latest appropriate commit.
 
 ### Breaking changes
 
@@ -65,7 +62,7 @@ Release a new major version as normal following semantic versioning.
 
 ### Preparing a release
 
-When working on a PR branch, create a release with the target version, but append -beta to the tag name.
+When working on a PR branch, create a release with the target version, but append `-beta` to the tag name.
 
 e.g.
 
