@@ -2,6 +2,9 @@
 
 set -eu
 
+# This gets the commit message of whatever branch is in use
+COMMIT_MESSAGE=$(git show -s --format=%s)
+
 echo "Parsing resources to be signed"
 RESOURCES="$(yq '.Resources.* | select(has("Type") and .Type == "AWS::Serverless::Function" or .Type == "AWS::Serverless::LayerVersion") | path | .[1]' "$TEMPLATE_FILE" | xargs)"
 read -ra LIST <<< "$RESOURCES"
