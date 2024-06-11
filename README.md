@@ -47,17 +47,17 @@ Pull in the action in your workflow as below, making sure to specify the release
 
 ## Releasing updates
 
-We
-follow [recommended best practices](https://docs.github.com/en/actions/creating-actions/releasing-and-maintaining-actions)
-for releasing new versions of the action.
+We follow [recommended best practices](https://docs.github.com/en/actions/creating-actions/releasing-and-maintaining-actions) for releasing new versions of the action.
 
 ### Non-breaking changes
 
-Release a new minor or patch version as appropriate, then update the base major version release (and any minor versions)
-to point to this latest appropriate commit. e.g.: If the latest major release is v2, and you have added a non-breaking
-feature, release v2.1.0 and point v2 to the same commit as v2.1.0.
+Release a new minor or patch version as appropriate. Then, update the base major version release (and any minor versions)
+to point to this latest commit. For example, if the latest major release is v2 and you have added a non-breaking feature,
+release v2.1.0 and point v2 to the same commit as v2.1.0.
 
 NOTE: Until v3 is released, you will need to point both v1 and v2 to the latest version since there are no breaking changes between them.
+
+NOTE: In regards to Dependabot subcribers, Dependabot does not pick up and raise PRs for `PATCH` versions (i.e v3.8.1) of a release ensure consumers are nofitied.
 
 ### Breaking changes
 
@@ -65,7 +65,7 @@ Release a new major version as normal following semantic versioning.
 
 ### Preparing a release
 
-When working on a PR branch, create a release with the target version, but append -beta to the tag name.
+When working on a PR branch, create a release with the target version, but append -beta to the post-fix tag name.
 
 e.g.
 
@@ -73,3 +73,19 @@ e.g.
 
 You can then navigate to the release page, and create a pre-release to validate that the tag is working as expected.
 After you've merged the PR, then apply the correct tag for your release.
+
+Please ensure all pre-release versions have been tested prior to creation, you are able to do this via updating `uses:`
+property within a GitHub actions workflow to point to a branch name rather than the tag, see example below:
+
+```
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Upload and tag
+        uses: govuk-one-login/devplatform-upload-action@<BRANCH_NAME>
+```
