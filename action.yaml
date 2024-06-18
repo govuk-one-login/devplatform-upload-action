@@ -14,6 +14,10 @@ inputs:
     description: 'The name of the CF template for the application. This defaults to template.yaml'
     required: false
     default: template.yaml
+  version-number:
+    description: The version number of the application being deployed. This defaults to ""'
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -27,5 +31,6 @@ runs:
         TEMPLATE_FILE: ${{ inputs.template-file }}
         COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         GITHUB_ACTOR: ${{ github.actor }}
+        VERSION_NUMBER: ${{ inputs.version-number }}
       run: ${{ github.action_path }}/scripts/upload.sh
       shell: bash
