@@ -11,7 +11,7 @@ inputs:
     description: 'The working directory containing the SAM app'
     required: false
   template-file:
-    description: 'The name of the CF template for the application. This defaults to template.yaml'
+    description: 'The name and path of the CF template for the application. This defaults to template.yaml'
     required: false
     default: template.yaml
   version-number:

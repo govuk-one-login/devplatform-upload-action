@@ -15,12 +15,12 @@ It adds the following metadata to the S3 object:
 
 ## Action Inputs
 
-| Input                | Required | Description                                                                     | Example              |
-|----------------------|----------|---------------------------------------------------------------------------------|----------------------|
-| artifact-bucket-name | true     | The name of the artifact S3 bucket                                              | artifact-bucket-1234 |
-| signing-profile-name | true     | The name of the Signing Profile resource in AWS                                 | signing-profile-1234 |
-| working-directory    | false    | The working directory containing the SAM app and the template file              | ./sam-app            |
-| template-file        | false    | The name of the CF template for the application. This defaults to template.yaml | custom-template.yaml |
+| Input                | Required | Description                                                                              | Example                             |
+|----------------------|----------|------------------------------------------------------------------------------------------|-------------------------------------|
+| artifact-bucket-name | true     | The name of the artifact S3 bucket                                                       | artifact-bucket-1234                |
+| signing-profile-name | true     | The name of the Signing Profile resource in AWS                                          | signing-profile-1234                |
+| working-directory    | false    | The working directory containing the SAM app and the template file                       | ./sam-app                           |
+| template-file        | false    | The name and path of the CF template for the application. This defaults to template.yaml | .aws-sam/build/template.yaml        |
 
 ## Usage Example
 
@@ -33,7 +33,7 @@ Pull in the action in your workflow as below, making sure to specify the release
     artifact-bucket-name: ${{ secrets.ARTIFACT_BUCKET_NAME }}
     signing-profile-name: ${{ secrets.SIGNING_PROFILE_NAME }}
     working-directory: ./sam-app
-    template-file: custom-template.yaml
+    template-file: .aws-sam/build/template.yaml
 ```
 
 ## Requirements
