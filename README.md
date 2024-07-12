@@ -65,22 +65,25 @@ Release a new major version as normal following semantic versioning.
 
 ### Bug fixes
 
-Once the bug is fixed and a new release happens, make sure to float tags affected by the bug to the latest stable commmit.
-For example, let's say v2.3.1 has a bug and v2.3.2 contains the fix:
+Once your PR is merged and the bug is fixed, make sure to float tags affected by the bug to the latest stable commit.
 
-:bug: v2.3.1 `abcd001`
+For example, let's say commit `abcd001` introduced a bug and is tagged with `v2.3.1`.  You then merge commit `dcba002` with a fix to your solution:
 
-:white_check_mark: v2.3.2 `dcba002`
+:bug: `abcd001` `v2.3.1`
 
-To edit the v2.3.1 tag:
+:white_check_mark: `dcba002`
+
+Instead of creating a new tag for the fix, you can update the `v2.3.1` tag to the latest stable commit with the following command:
 ```
-git tag v2.3.1 dcba002 -f
+git tag -s -af v2.3.1 dcba002
 git push origin v2.3.1 -f
 ```
 
-:white_check_mark: v2.3.1 `dcba002`
+:bug: `abcd001`
 
-:white_check_mark: v2.3.2 `dcba002`
+:white_check_mark:`dcba002` `v2.3.1`
+
+This will make sure users benefit from the fix immediately, without the need to manually bump their action version.
 
 ### Preparing a release
 
