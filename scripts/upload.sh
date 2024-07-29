@@ -22,7 +22,7 @@ fi
 # This only gets set if there is a tag on the current commit.
 GIT_TAG=$(git describe --tags --first-parent --always)
 # Cleaning the commit message to remove special characters
-COMMIT_MSG=$(echo $COMMIT_MESSAGE | tr '\n' ' ' | tr -dc '[:alnum:]- ' | cut -c1-50)
+COMMIT_MSG=$(echo $COMMIT_MESSAGE | tr '\n' ' ' | tr -dc '[:alnum:]- ')
 # Gets merge time to main - displaying it in UTC timezone
 MERGE_TIME=$(TZ=UTC0 git log -1 --format=%cd --date=format-local:'%Y-%m-%d %H:%M:%S')
 
