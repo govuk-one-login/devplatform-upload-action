@@ -21,8 +21,26 @@ inputs:
 
 runs:
   using: "composite"
-
   steps:
+  # - name: Git stuff pulled out of the script, run this here and pass in?
+      # # This only gets set if there is a tag on the current commit.
+      # GIT_TAG=$(git describe --tags --first-parent --always)
+      # # Cleaning the commit message to remove special characters
+      # COMMIT_MSG=$(echo $COMMIT_MESSAGE | tr '\n' ' ' | tr -dc '[:alnum:]- ' | cut -c1-50)
+      # # Gets merge time to main - displaying it in UTC timezone
+      # MERGE_TIME=$(TZ=UTC0 git log -1 --format=%cd --date=format-local:'%Y-%m-%d %H:%M:%S')
+
+      # # Sanitise commit message and search for canary deployment instructions
+      # MSG=$(echo $COMMIT_MESSAGE | tr '\n' ' ' | tr '[:upper:]' '[:lower:]')
+      # if [[ $MSG =~ "[skip canary]" || $MSG =~ "[canary skip]" || $MSG =~ "[no canary]" ]]; then
+      #     SKIP_CANARY_DEPLOYMENT=1
+      # else
+      #     SKIP_CANARY_DEPLOYMENT=0
+      # fi
+    # - name: Change CFN Template from YAML to JSON
+    # brew install rain
+    # rain fmt --json template.yaml > Json-template.yaml
+
     - name: Upload Lambdas to S3
       working-directory: ${{ inputs.working-directory }}
       env:
@@ -32,5 +50,5 @@ runs:
         COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         GITHUB_ACTOR: ${{ github.actor }}
         VERSION_NUMBER: ${{ inputs.version-number }}
-      run: ${{ github.action_path }}/scripts/upload.sh
+      run: ${{ github.action_path }}/scripts/upload.py
       shell: bash
