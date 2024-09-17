@@ -22,21 +22,30 @@ inputs:
 runs:
   using: "composite"
   steps:
-  # - name: Git stuff pulled out of the script, run this here and pass in?
-      # # This only gets set if there is a tag on the current commit.
-      # GIT_TAG=$(git describe --tags --first-parent --always)
-      # # Cleaning the commit message to remove special characters
-      # COMMIT_MSG=$(echo $COMMIT_MESSAGE | tr '\n' ' ' | tr -dc '[:alnum:]- ' | cut -c1-50)
-      # # Gets merge time to main - displaying it in UTC timezone
-      # MERGE_TIME=$(TZ=UTC0 git log -1 --format=%cd --date=format-local:'%Y-%m-%d %H:%M:%S')
+    - name: Git Tag
+      shell: bash
+      run: GIT_TAG=$(git describe --tags --first-parent --always) >> $GITHUB_ENV
 
-      # # Sanitise commit message and search for canary deployment instructions
-      # MSG=$(echo $COMMIT_MESSAGE | tr '\n' ' ' | tr '[:upper:]' '[:lower:]')
-      # if [[ $MSG =~ "[skip canary]" || $MSG =~ "[canary skip]" || $MSG =~ "[no canary]" ]]; then
-      #     SKIP_CANARY_DEPLOYMENT=1
-      # else
-      #     SKIP_CANARY_DEPLOYMENT=0
-      # fi
+    - name: Remove Special Chars from Commit message
+      shell: bash
+      run: |
+        COMMIT_MESSAGE=${{ github.event.head_commit.message }}
+        FORMATTED_COMMIT_MESSAGE=$(echo $COMMIT_MESSAGE | tr '\n' ' ' | tr -dc '[:alnum:]- ' | cut -c1-50) >> $GITHUB_ENV
+
+    - name: Merge Time to Main - Displaying in UTC Timezone
+      shell: bash
+      run: MERGE_TIME=$(TZ=UTC0 git log -1 --format=%cd --date=format-local:'%Y-%m-%d %H:%M:%S')
+
+    - name: Sanitise Commit Message and Search for Canary Deployment Instructions
+      shell: bash
+      run: |
+        MSG=$(echo $COMMIT_MESSAGE | tr '\n' ' ' | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
+        if [[ $MSG =~ "[skip canary]" || $MSG =~ "[canary skip]" || $MSG =~ "[no canary]" ]]; then
+            SKIP_CANARY_DEPLOYMENT=1 >> $GITHUB_ENV
+        else
+            SKIP_CANARY_DEPLOYMENT=0 >> $GITHUB_ENV
+        fi
+
     # - name: Change CFN Template from YAML to JSON
     # brew install rain
     # rain fmt --json template.yaml > Json-template.yaml
@@ -44,10 +53,13 @@ runs:
     - name: Upload Lambdas to S3
       working-directory: ${{ inputs.working-directory }}
       env:
+        GIT_TAG: ${{ env.GIT_TAG }}
+        MERGE_TIME: ${{ env.MERGE_TIME }}
+        SKIP_CANARY_DEPLOYMENT: ${{ env.SKIP_CANARY_DEPLOYMENT }}
         ARTIFACT_BUCKET: ${{ inputs.artifact-bucket-name }}
         SIGNING_PROFILE: ${{ inputs.signing-profile-name }}
         TEMPLATE_FILE: ${{ inputs.template-file }}
-        COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        COMMIT_MESSAGE: ${{ env.FORMATTED_COMMIT_MESSAGE }}
         GITHUB_ACTOR: ${{ github.actor }}
         VERSION_NUMBER: ${{ inputs.version-number }}
       run: ${{ github.action_path }}/scripts/upload.py
