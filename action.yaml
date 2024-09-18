@@ -22,6 +22,11 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Install Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
     - name: Git Tag
       shell: bash
       run: GIT_TAG=$(git describe --tags --first-parent --always) >> $GITHUB_ENV
