@@ -2,6 +2,7 @@ name: Test Lambda deploy
 
 on:
   workflow_dispatch:
+  push:
 
 defaults:
   run:

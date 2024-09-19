@@ -2,6 +2,7 @@ name: Run act
 
 on:
   workflow_dispatch:
+  push:
 
 defaults:
   run:
