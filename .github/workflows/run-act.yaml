@@ -1,4 +1,4 @@
-name: run act
+name: Run act
 
 on:
   workflow_dispatch:
