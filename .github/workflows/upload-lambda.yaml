@@ -68,7 +68,7 @@ jobs:
         run: sam build
 
       - name: Deploy SAM app
-        uses: ../
+        uses: govuk-one-login/devplatform-upload-action@${{ github.sha }}
         with:
           artifact-bucket-name: ${{ secrets.TEST_LAMBDA_ARTIFACT_BUCKET_NAME }}
           signing-profile-name: ${{ secrets.SIGNING_PROFILE_NAME }}
