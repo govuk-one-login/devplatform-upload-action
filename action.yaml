@@ -27,6 +27,9 @@ runs:
       with:
         python-version: '3.11'
 
+    - name: Install Python dependencies
+        path: 'requirements.txt'
+
     - name: Git Tag
       shell: bash
       run: GIT_TAG=$(git describe --tags --first-parent --always) >> $GITHUB_ENV
