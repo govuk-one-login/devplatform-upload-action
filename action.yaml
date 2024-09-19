@@ -26,11 +26,18 @@ runs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
+        # cache: 'pip'
+    - name: Set up Homebrew
+      id: set-up-homebrew
+      uses: Homebrew/actions/setup-homebrew@master
 
-    - name: Install Python dependencies
-      uses: py-actions/py-dependency-install@v4
-      with:
-        path: 'requirements.txt'
+    - name: Instal dependencies
+      shell: bash
+      run: pip install -r ${{ github.action_path }}/requirements.txt
+
+    - name: Install Cloudformation Rain
+      shell: bash
+      run: brew install rain
 
     - name: Git Tag
       shell: bash
@@ -56,21 +63,24 @@ runs:
             SKIP_CANARY_DEPLOYMENT=0 >> $GITHUB_ENV
         fi
 
-    # - name: Change CFN Template from YAML to JSON
-    # brew install rain
-    # rain fmt --json template.yaml > Json-template.yaml
+    - name: Change CFN Template from YAML to JSON
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: rain fmt ${{ inputs.template-file }} --json --write json-template.yaml
 
     - name: Upload Lambdas to S3
       working-directory: ${{ inputs.working-directory }}
       env:
-        GIT_TAG: ${{ env.GIT_TAG }}
-        MERGE_TIME: ${{ env.MERGE_TIME }}
-        SKIP_CANARY_DEPLOYMENT: ${{ env.SKIP_CANARY_DEPLOYMENT }}
         ARTIFACT_BUCKET: ${{ inputs.artifact-bucket-name }}
-        SIGNING_PROFILE: ${{ inputs.signing-profile-name }}
-        TEMPLATE_FILE: ${{ inputs.template-file }}
         COMMIT_MESSAGE: ${{ env.FORMATTED_COMMIT_MESSAGE }}
         GITHUB_ACTOR: ${{ github.actor }}
+        GIT_SHA: ${{ github.sha }}
+        GIT_TAG: ${{ env.GIT_TAG }}
+        MERGE_TIME: ${{ env.MERGE_TIME }}
+        REPOSITORY: ${{ github.event.repository.name }}
+        SKIP_CANARY_DEPLOYMENT: ${{ env.SKIP_CANARY_DEPLOYMENT }}
+        SIGNING_PROFILE: ${{ inputs.signing-profile-name }}
+        TEMPLATE_FILE: ${{ env.JSON_TEMPLATE_FILE }}
         VERSION_NUMBER: ${{ inputs.version-number }}
-      run: ${{ github.action_path }}/scripts/upload.py
+      run: ${{ github.action_path }}/scripts/upload.py \
       shell: bash

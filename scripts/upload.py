@@ -48,12 +48,12 @@ with open (f'Json-{template_file_name}') as templateFile:
 print("Writing Lambda provenance")
 
 with open (f'cf-template.yaml') as cftemplateFile:
-  metadata = [f'repository={"repository"}',
-              f'commitsha={"commit_sha"}',
-              f'committag={"commit_tag"}',
-              f'commitmessage={"commit_message"}',
-              f'commitauthor={"github_actor"}',
-              f'release={"version_number"}']
+  metadata = [f'repository={repository}',
+              f'commitsha={commit_sha}',
+              f'committag={commit_tag}',
+              f'commitmessage={commit_message}',
+              f'commitauthor={github_actor}',
+              f'release={version_number}']
   metadata = ','.join(metadata)
   app_template = Template.from_string(cftemplateFile.read())
   functions = app_template.find_resources(type="AWS::Serverless::Function")
