@@ -6,9 +6,10 @@ on:
 defaults:
   run:
     shell: bash
+    working-directory: ./
 
 jobs:
-  deploy:
+  check-actions:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
