@@ -26,4 +26,4 @@ jobs:
         run: curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
 
       - name: Run act
-        run: ./bin/act
+        run: ./bin/act -s TEST_LAMBDA_ARTIFACT_BUCKET_NAME=supersecretsauce
