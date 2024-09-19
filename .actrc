@@ -1,0 +1,2 @@
+--platform ubuntu-latest=catthehacker/ubuntu:act-latest
+--workflows ./.github/workflows/upload-lambda.yaml
