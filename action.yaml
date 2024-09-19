@@ -28,6 +28,8 @@ runs:
         python-version: '3.11'
 
     - name: Install Python dependencies
+      uses: py-actions/py-dependency-install@v4
+      with:
         path: 'requirements.txt'
 
     - name: Git Tag
