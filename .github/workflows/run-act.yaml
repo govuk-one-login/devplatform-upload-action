@@ -32,7 +32,10 @@ jobs:
           path: 'devplatform-demo-sam-app'
 
       - name: update workflows
-        run: sed -i s/devplatform-upload-action*/devplatform-upload-action@${{ github.sha }}/ ./devplatform-demo-sam-app/.github/workflows/sam-app-deploy-testing-upload-action.yml
+        run: sed -i 's/devplatform-upload-action*/devplatform-upload-action@${{ github.sha }}/' ./devplatform-demo-sam-app/.github/workflows/sam-app-deploy-testing-upload-action.yml
+
+      - name: check workflow
+        run: cat ./devplatform-demo-sam-app/.github/workflows/sam-app-deploy-testing-upload-action.yml
 
       - name: Install act
         run: curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
