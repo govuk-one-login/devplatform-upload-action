@@ -1,2 +1,2 @@
 --platform ubuntu-latest=catthehacker/ubuntu:act-latest
---workflows ./.github/workflows/upload-lambda.yaml
+--workflows ./devplatform-demo-sam-app/.github/workflows/sam-app-deploy-testing-upload-action.yml
