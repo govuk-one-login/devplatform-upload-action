@@ -20,6 +20,11 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Checkout devplatform-demo-sam-app repo
+        uses: actions/checkout@v4
+        with:
           repository: 'govuk-one-login/devplatform-demo-sam-app'
           ref: 'bau-spike-on-act'
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
