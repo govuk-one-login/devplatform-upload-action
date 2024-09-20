@@ -20,10 +20,17 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
+          repository: 'govuk-one-login/devplatform-demo-sam-app'
+          ref: 'bau-spike-on-act'
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+          token: ${{ secrets.DEMO_REPO_TOKEN }}
+          path: 'devplatform-demo-sam-app'
+
+      - name: update workflows
+        run: sed -i s/devplatform-upload-action*/devplatform-upload-action@${{ github.sha }}/ ./devplatform-demo-sam-app/.github/workflows/sam-app-deploy-testing-upload-action.yml
 
       - name: Install act
         run: curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
 
       - name: Run act
-        run: ./bin/act -s TEST_LAMBDA_ARTIFACT_BUCKET_NAME=${{ secrets.THISISASECRET }}
+        run: ./bin/act -s ACT_BUCKET_NAME=${{ secrets.ACT_BUCKET_NAME }} SIGNING_PROFILE_NAME=${{ secrets.SIGNING_PROFILE_NAME }} ACT_ROLE_ARN=${{ secrets.ACT_ROLE_ARN }}
