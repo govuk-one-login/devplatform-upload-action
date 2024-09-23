@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
-from aws_cdk import Stack
 from aws_cdk.assertions import Template
 
 import os, subprocess
-
-stack = Stack()
 
 signing_profile_name = os.environ['SIGNING_PROFILE']
 template_file_name = os.environ['TEMPLATE_FILE']
@@ -18,8 +15,10 @@ version_number = os.environ['VERSION_NUMBER']
 merge_time = os.environ['MERGE_TIME']
 skip_canary = os.environ['SKIP_CANARY_DEPLOYMENT']
 
+print(os.environ['TEMPLATE_FILE'])
+print(template_file_name)
 
-with open (f'Json-{template_file_name}') as templateFile:
+with open (template_file_name) as templateFile:
   app_template = Template.from_stack(templateFile.read())
   print("Parsing resources to be signed")
   functions = app_template.find_resources(type="AWS::Serverless::Function")
@@ -32,14 +31,14 @@ with open (f'Json-{template_file_name}') as templateFile:
     print("No resources that require signing found")
     subprocess.run(['sam package',
                   '--s3-bucket="$ARTIFACT_BUCKET"',
-                  f'--template-file=Json-{template_file_name}',
+                  f'--template-file={template_file_name}',
                   '--output-template-file=cf-template.yaml',
                   ])
 
   else:
     subprocess.run(['sam package',
               '--s3-bucket="$ARTIFACT_BUCKET"',
-              f'--template-file=Json-{template_file_name}',
+              f'--template-file={template_file_name}',
               '--output-template-file=cf-template.yaml',
               f'--signing-profiles {signing_profiles}',
               ])
