@@ -41,4 +41,9 @@ jobs:
         run: curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
 
       - name: Run act
-        run: ./bin/act -s ACT_BUCKET_NAME=${{ secrets.ACT_BUCKET_NAME }} -s SIGNING_PROFILE_NAME=${{ secrets.SIGNING_PROFILE_NAME }} -s ACT_ROLE_ARN=${{ secrets.ACT_ROLE_ARN }} -s OIDC_DEBUGGING_TOKEN=${{ secrets.OIDC_DEBUGGING_TOKEN }}
+        run: |
+          ./bin/act -s ACT_BUCKET_NAME=${{ secrets.ACT_BUCKET_NAME }} \
+          -s SIGNING_PROFILE_NAME=${{ secrets.SIGNING_PROFILE_NAME }} \
+          -s ACT_ROLE_ARN=${{ secrets.ACT_ROLE_ARN }} \
+          -s OIDC_DEBUGGING_TOKEN=${{ secrets.OIDC_DEBUGGING_TOKEN }} \
+          --env ACTIONS_ID_TOKEN_REQUEST_URL=$ACTIONS_ID_TOKEN_REQUEST_URL
