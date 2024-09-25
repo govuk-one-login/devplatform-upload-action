@@ -52,5 +52,5 @@ jobs:
       - name: Poll stack for updates
         uses: govuk-one-login/github-actions/sam/check-stack-updated@46e340955384194b5a7c0a21d1ffa016ff62bb7d #bau-new-cloudformation-polling-action
         with:
-          stack-name: upload-action-testing
+          stack-name: ${{ secrets.STACK_NAME }}
           gh-polling-role: ${{ secrets.POLLING_ROLE }}
