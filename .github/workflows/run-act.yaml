@@ -50,7 +50,7 @@ jobs:
           --env ACTIONS_ID_TOKEN_REQUEST_TOKEN=$ACTIONS_ID_TOKEN_REQUEST_TOKEN
 
       - name: Poll stack for updates
-        uses: govuk-one-login/github-actions/sam/check-stack-updated@b44dabb4570adbed769613920b975c7837078830 #bau-new-cloudformation-polling-action
+        uses: govuk-one-login/github-actions/sam/check-stack-updated@8534bd152c4d8de63391abbc698d29eebf9f92d5 #bau-new-cloudformation-polling-action
         with:
           stack-name: upload-action-testing
           gh-polling-role: ${{ secrets.POLLING_ROLE }}
