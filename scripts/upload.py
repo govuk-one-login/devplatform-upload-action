@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
+from aws_cdk import Stack
 from aws_cdk.assertions import Template
 
 import os, subprocess
+
+stack = Stack()
 
 signing_profile_name = os.environ['SIGNING_PROFILE']
 template_file_name = os.environ['TEMPLATE_FILE']
@@ -15,17 +18,16 @@ version_number = os.environ['VERSION_NUMBER']
 merge_time = os.environ['MERGE_TIME']
 skip_canary = os.environ['SKIP_CANARY_DEPLOYMENT']
 
-print(os.environ['TEMPLATE_FILE'])
 print(template_file_name)
 
 with open (template_file_name) as templateFile:
-  app_template = Template.from_stack(templateFile.read())
+  app_template = Template.from_string(templateFile.read())
   print("Parsing resources to be signed")
   functions = app_template.find_resources(type="AWS::Serverless::Function")
   layers = app_template.find_resources(type="AWS::Serverless::LayerVersion")
   signing_profiles = ""
 
-  for resource in layers:
+  for resource in layers + functions:
     signing_profiles += f'{resource}={signing_profile_name} '
   if len(functions) + len(layers) == 0:
     print("No resources that require signing found")
