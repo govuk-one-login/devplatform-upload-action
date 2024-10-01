@@ -32,10 +32,10 @@ jobs:
           path: 'devplatform-demo-sam-app'
 
       - name: update workflows
-        run: sed -i 's/devplatform-upload-action*/devplatform-upload-action@${{ github.sha }}/' ./devplatform-demo-sam-app/.github/workflows/sam-app-deploy-testing-upload-action.yml
+        run: sed -i 's/devplatform-upload-action*/devplatform-upload-action@${{ github.sha }}/' ./devplatform-demo-sam-app/.github/workflows/sam-app2-deploy-testing-upload-action.yml
 
       - name: check workflow
-        run: cat ./devplatform-demo-sam-app/.github/workflows/sam-app-deploy-testing-upload-action.yml
+        run: cat ./devplatform-demo-sam-app/.github/workflows/sam-app2-deploy-testing-upload-action.yml
 
       - name: Install act
         run: curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
@@ -45,7 +45,6 @@ jobs:
           ./bin/act -s ACT_BUCKET_NAME=${{ secrets.ACT_BUCKET_NAME }} \
           -s SIGNING_PROFILE_NAME=${{ secrets.SIGNING_PROFILE_NAME }} \
           -s ACT_ROLE_ARN=${{ secrets.ACT_ROLE_ARN }} \
-          -s OIDC_DEBUGGING_TOKEN=${{ secrets.OIDC_DEBUGGING_TOKEN }} \
           --env ACTIONS_ID_TOKEN_REQUEST_URL=$ACTIONS_ID_TOKEN_REQUEST_URL \
           --env ACTIONS_ID_TOKEN_REQUEST_TOKEN=$ACTIONS_ID_TOKEN_REQUEST_TOKEN
 
