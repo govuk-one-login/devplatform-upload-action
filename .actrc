@@ -1,2 +1,2 @@
 --platform ubuntu-latest=catthehacker/ubuntu:act-latest
---workflows ./devplatform-demo-sam-app/.github/workflows/sam-app-deploy-testing-upload-action.yml
+--workflows ./devplatform-demo-sam-app/.github/workflows/sam-app2-deploy-testing-upload-action.yml
