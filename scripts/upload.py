@@ -47,27 +47,27 @@ def sign_resources(template_file_name, signing_profiles):
                     ])
 
 
-print("Writing Lambda provenance")
+def lambda_provenance():
+  print("Writing Lambda provenance")
+  with open (f'cf-template.yaml') as cftemplateFile:
+    metadata = [f'repository={repository}',
+                f'commitsha={commit_sha}',
+                f'committag={commit_tag}',
+                f'commitmessage={commit_message}',
+                f'commitauthor={github_actor}',
+                f'release={version_number}']
+    metadata = ','.join(metadata)
+    app_template = Template.from_string(cftemplateFile.read())
+    functions = app_template.find_resources(type="AWS::Serverless::Function")
+    layers = app_template.find_resources(type="AWS::Serverless::LayerVersion")
+    for _, configuration in functions.items():
+      CodeUri = configuration['Properties']['CodeUri']
+      subprocess.run([f'aws s3 cp {CodeUri} {CodeUri}',f'--metadata {metadata}'])
 
-with open (f'cf-template.yaml') as cftemplateFile:
-  metadata = [f'repository={repository}',
-              f'commitsha={commit_sha}',
-              f'committag={commit_tag}',
-              f'commitmessage={commit_message}',
-              f'commitauthor={github_actor}',
-              f'release={version_number}']
-  metadata = ','.join(metadata)
-  app_template = Template.from_string(cftemplateFile.read())
-  functions = app_template.find_resources(type="AWS::Serverless::Function")
-  layers = app_template.find_resources(type="AWS::Serverless::LayerVersion")
-  for resource,configuration in functions.items():
-    CodeUri = configuration['Properties']['CodeUri']
-    subprocess.run([f'aws s3 cp {CodeUri} {CodeUri}',f'--metadata {metadata}'])
-
-  print ("Writing Lambda Layer provenance")
-  for resource,configuration in layers.items():
-    ContentUri = configuration['Properties']['ContentUri']
-    subprocess.run([f'aws s3 cp {ContentUri} {ContentUri}',f'--metadata {metadata}'])
+    print ("Writing Lambda Layer provenance")
+    for _ , configuration in layers.items():
+      ContentUri = configuration['Properties']['ContentUri']
+      subprocess.run([f'aws s3 cp {ContentUri} {ContentUri}',f'--metadata {metadata}'])
 
 print("Zipping the CloudFormation template")
 subprocess.run('zip template.zip cf-template.yaml')
