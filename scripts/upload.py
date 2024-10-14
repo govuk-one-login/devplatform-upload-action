@@ -29,6 +29,8 @@ def signing_profiles(template_file_name):
     for resource in layers + functions:
       signing_profiles += f'{resource}={signing_profile_name} '
 
+    return signing_profiles
+
 
 def sign_resources(template_file_name, signing_profiles):
   print("Signing resources with sam package")
@@ -72,16 +74,17 @@ def lambda_provenance():
 print("Zipping the CloudFormation template")
 subprocess.run('zip template.zip cf-template.yaml')
 
-print("Uploading zipped CloudFormation artifact to S3")
-metadata = [f'repository={repository}',
-            f'commitsha={commit_sha}',
-            f'committag={commit_tag}',
-            f'commitmessage={commit_message}',
-            f'commitauthor={github_actor}',
-            f'release={version_number}',
-            f'mergetime={merge_time}',
-            f'skipcanary={skip_canary}',
-            f'codepipeline-artifact-revision-summary={version_number}']
-metadata = ','.join(metadata)
-subprocess.run(f'aws s3 cp template.zip "s3://{artifact_bucket}/template.zip"',
-               f'--metadata {metadata}')
+def upload_artifact():
+  print("Uploading zipped CloudFormation artifact to S3")
+  metadata = [f'repository={repository}',
+              f'commitsha={commit_sha}',
+              f'committag={commit_tag}',
+              f'commitmessage={commit_message}',
+              f'commitauthor={github_actor}',
+              f'release={version_number}',
+              f'mergetime={merge_time}',
+              f'skipcanary={skip_canary}',
+              f'codepipeline-artifact-revision-summary={version_number}']
+  metadata = ','.join(metadata)
+  subprocess.run(f'aws s3 cp template.zip "s3://{artifact_bucket}/template.zip"',
+                f'--metadata {metadata}')
