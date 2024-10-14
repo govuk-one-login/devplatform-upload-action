@@ -18,13 +18,17 @@ version_number = os.environ['VERSION_NUMBER']
 merge_time = os.environ['MERGE_TIME']
 skip_canary = os.environ['SKIP_CANARY_DEPLOYMENT']
 
+
 def signing_profiles(template_file_name):
   with open (template_file_name) as templateFile:
     app_template = Template.from_string(templateFile.read())
     print("Parsing resources to be signed")
     functions = app_template.find_resources(type="AWS::Serverless::Function")
+    print("functions", functions)
     layers = app_template.find_resources(type="AWS::Serverless::LayerVersion")
+    print("layers", layers)
     signing_profiles = []
+    print(signing_profiles)
 
     for resource in layers + functions:
       signing_profiles += f'{resource}={signing_profile_name} '
@@ -48,10 +52,12 @@ def sign_resources(template_file_name, signing_profiles):
                     '--output-template-file=cf-template.yaml',
                     ])
 
+  cf_template='cf-template.yaml'
+  return cf_template
 
-def lambda_provenance():
+def lambda_provenance(cf_template):
   print("Writing Lambda provenance")
-  with open (f'cf-template.yaml') as cftemplateFile:
+  with open (cf_template) as cftemplateFile:
     metadata = [f'repository={repository}',
                 f'commitsha={commit_sha}',
                 f'committag={commit_tag}',
@@ -62,19 +68,25 @@ def lambda_provenance():
     app_template = Template.from_string(cftemplateFile.read())
     functions = app_template.find_resources(type="AWS::Serverless::Function")
     layers = app_template.find_resources(type="AWS::Serverless::LayerVersion")
-    for _, configuration in functions.items():
+
+    for resource, configuration in functions.items():
+      print("lambda provenance")
       CodeUri = configuration['Properties']['CodeUri']
+      print("codeuri", CodeUri)
       subprocess.run([f'aws s3 cp {CodeUri} {CodeUri}',f'--metadata {metadata}'])
+      print("metadata", metadata)
 
     print ("Writing Lambda Layer provenance")
-    for _ , configuration in layers.items():
+    for resource, configuration in layers.items():
+      print("lambda layer provenance")
       ContentUri = configuration['Properties']['ContentUri']
       subprocess.run([f'aws s3 cp {ContentUri} {ContentUri}',f'--metadata {metadata}'])
 
-print("Zipping the CloudFormation template")
-subprocess.run('zip template.zip cf-template.yaml')
+
 
 def upload_artifact():
+  print("Zipping the CloudFormation template")
+  subprocess.run('zip template.zip cf-template.yaml')
   print("Uploading zipped CloudFormation artifact to S3")
   metadata = [f'repository={repository}',
               f'commitsha={commit_sha}',
@@ -88,3 +100,8 @@ def upload_artifact():
   metadata = ','.join(metadata)
   subprocess.run(f'aws s3 cp template.zip "s3://{artifact_bucket}/template.zip"',
                 f'--metadata {metadata}')
+
+# signing_profiles(template_file_name)
+# sign_resources(template_file_name, signing_profiles)
+# lambda_provenance(cf_template)
+# upload_artifact()
