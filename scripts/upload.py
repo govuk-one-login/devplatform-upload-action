@@ -25,16 +25,20 @@ with open (template_file_name) as templateFile:
   print("Parsing resources to be signed")
   functions = app_template.find_resources(type="AWS::Serverless::Function")
   layers = app_template.find_resources(type="AWS::Serverless::LayerVersion")
+  resources = functions | layers
   signing_profiles = ""
 
-  for resource in layers + functions:
+  for resource in resources:
     signing_profiles += f'{resource}={signing_profile_name} '
+
+  print(signing_profiles)
+
   if len(functions) + len(layers) == 0:
     print("No resources that require signing found")
     subprocess.run(['sam package',
-                  '--s3-bucket="$ARTIFACT_BUCKET"',
-                  f'--template-file={template_file_name}',
-                  '--output-template-file=cf-template.yaml',
+                    '--s3-bucket="$ARTIFACT_BUCKET"',
+                    f'--template-file={template_file_name}',
+                    '--output-template-file=cf-template.yaml',
                   ])
 
   else:
