@@ -28,17 +28,9 @@ runs:
         python-version: '3.11'
         # cache: 'pip'
 
-    - name: Set up Homebrew
-      id: set-up-homebrew
-      uses: Homebrew/actions/setup-homebrew@master
-
     - name: Instal dependencies
       shell: bash
       run: pip install -r ${{ github.action_path }}/requirements.txt
-
-    - name: Install Cloudformation Rain
-      shell: bash
-      run: brew install rain
 
     - name: Git Tag
       shell: bash
@@ -68,14 +60,8 @@ runs:
       shell: bash
       working-directory: ${{ inputs.working-directory }}
       run: |
-        rain fmt ${{ inputs.template-file }} --json > json-${{ inputs.template-file }}
+        cfn-flip ${{ inputs.template-file }} --json > json-${{ inputs.template-file }}
         echo "TEMPLATE_FILE=json-${{ inputs.template-file }}" >> $GITHUB_ENV
-
-    - name: Template file
-      shell: bash
-      run: |
-        echo $TEMPLATE_FILE
-        echo ${{ env.TEMPLATE_FILE }}
 
     - name: Upload Lambdas to S3
       working-directory: ${{ inputs.working-directory }}
