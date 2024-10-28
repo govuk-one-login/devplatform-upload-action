@@ -63,6 +63,10 @@ runs:
         cfn-flip ${{ inputs.template-file }} --json > json-${{ inputs.template-file }}
         echo "TEMPLATE_FILE=json-${{ inputs.template-file }}" >> $GITHUB_ENV
 
+    - name: make python script executable
+      shell: bash
+      run: chmod +x scripts/*
+
     - name: Upload Lambdas to S3
       working-directory: ${{ inputs.working-directory }}
       env:
@@ -77,5 +81,5 @@ runs:
         SIGNING_PROFILE: ${{ inputs.signing-profile-name }}
         TEMPLATE_FILE: ${{ env.TEMPLATE_FILE }}
         VERSION_NUMBER: ${{ inputs.version-number }}
-      run: ${{ github.action_path }}/scripts/py-upload.py
+      run: ${{ github.action_path }}/scripts/upload.py
       shell: bash

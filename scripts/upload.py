@@ -18,17 +18,25 @@ version_number = os.environ['VERSION_NUMBER']
 merge_time = os.environ['MERGE_TIME']
 skip_canary = os.environ['SKIP_CANARY_DEPLOYMENT']
 
+print(signing_profile_name)
+print(template_file_name)
+print(artifact_bucket)
+print(repository)
+print(commit_message)
+print(commit_sha)
+
 
 with open (template_file_name) as templateFile:
   app_template = Template.from_string(templateFile.read())
   print("Parsing resources to be signed")
   functions = app_template.find_resources(type="AWS::Serverless::Function")
-  print("functions:", functions)
   layers = app_template.find_resources(type="AWS::Serverless::LayerVersion")
-  print("layers:", layers)
   signing_profiles = []
 
-  for resource in layers + functions:
+  for resource in functions:
+    signing_profiles += f'{resource}={signing_profile_name} '
+
+  for resource in layers:
     signing_profiles += f'{resource}={signing_profile_name} '
 
   if len(functions) + len(layers) == 0:
