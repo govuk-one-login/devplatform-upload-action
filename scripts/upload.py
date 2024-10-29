@@ -101,7 +101,7 @@ def upload_artifact():
   subprocess.run(f'aws s3 cp template.zip "s3://{artifact_bucket}/template.zip"',
                 f'--metadata {metadata}')
 
-# signing_profiles(template_file_name)
-# sign_resources(template_file_name, signing_profiles)
-# lambda_provenance(cf_template)
-# upload_artifact()
+signing_profiles(template_file_name)
+sign_resources(template_file_name, signing_profiles)
+lambda_provenance(cf_template)
+upload_artifact()
