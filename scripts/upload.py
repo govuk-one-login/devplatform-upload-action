@@ -27,10 +27,12 @@ def signing_profiles(template_file_name):
     print("functions", functions)
     layers = app_template.find_resources(type="AWS::Serverless::LayerVersion")
     print("layers", layers)
+    resources = functions | layers
+    print(resources)
     signing_profiles = []
     print(signing_profiles)
 
-    for resource in layers + functions:
+    for resource in resources:
       signing_profiles += f'{resource}={signing_profile_name} '
 
     return signing_profiles
