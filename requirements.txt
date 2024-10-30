@@ -1,1 +1,2 @@
 aws-cdk-lib
+aws-sam-cli
