@@ -2,7 +2,7 @@
 from aws_cdk import Stack
 from aws_cdk.assertions import Template
 
-import os, subprocess
+import os, subprocess, sys
 
 stack = Stack()
 
@@ -18,6 +18,17 @@ version_number = os.environ['VERSION_NUMBER']
 merge_time = os.environ['MERGE_TIME']
 skip_canary = os.environ['SKIP_CANARY_DEPLOYMENT']
 
+# signing_profile_name = "SigningProfile_2KY7QMWu5CUY"
+# template_file_name = "/Users/bgalliano/Projects/GDS/di-devplatform/devplatform-upload-action/sam-app2/.aws-sam/build/json-template.yaml"
+# artifact_bucket = "demo-sam-app2-pipeline-githubartifactsourcebucket-kp3njaayiyde"
+# repository = "devplatform-demo-sam-app"
+# commit_message = "commit message"
+# commit_sha = "commit sha"
+# commit_tag = "madeuptag"
+# github_actor = "Beca Galliano"
+# version_number = "v123"
+# merge_time = 0
+# skip_canary = 0
 
 def signing_profiles(template_file_name):
   with open (template_file_name) as templateFile:
@@ -41,26 +52,16 @@ def signing_profiles(template_file_name):
 def sign_resources(template_file_name, signing_profiles):
   print("Signing resources with sam package")
   if signing_profiles:
-    subprocess.run(['sam package',
-                    '--s3-bucket="$ARTIFACT_BUCKET"',
-                    f'--template-file={template_file_name}',
-                    '--output-template-file=cf-template.yaml',
-                    f'--signing-profiles {signing_profiles}',
-                    ])
+    os.system(f'sam package --s3-bucket="$ARTIFACT_BUCKET" --template-file={template_file_name} --output-template-file=cf-template.yaml --use-json --signing-profiles {signing_profiles}')
   else:
-    subprocess.run(['sam package',
-                    '--s3-bucket="$ARTIFACT_BUCKET"',
-                    f'--template-file={template_file_name}',
-                    '--output-template-file=cf-template.yaml',
-                    ])
-
-  cf_template='cf-template.yaml'
-  return cf_template
+    os.system(f'sam package --s3-bucket="$ARTIFACT_BUCKET" --template-file={template_file_name} --output-template-file=cf-template.yaml --use-json')
+  return
+cf_template="cf-template.yaml"
 
 def lambda_provenance(cf_template):
   print("Writing Lambda provenance")
   with open (cf_template) as cftemplateFile:
-    metadata = [f'repository={repository}',
+    metadata = [f"repository=' '.join({repository})",
                 f'commitsha={commit_sha}',
                 f'committag={commit_tag}',
                 f'commitmessage={commit_message}',
@@ -75,20 +76,20 @@ def lambda_provenance(cf_template):
       print("lambda provenance")
       CodeUri = configuration['Properties']['CodeUri']
       print("codeuri", CodeUri)
-      subprocess.run([f'aws s3 cp {CodeUri} {CodeUri}',f'--metadata {metadata}'])
+      os.system(f'aws s3 cp {CodeUri} {CodeUri} --metadata {metadata}')
       print("metadata", metadata)
 
     print ("Writing Lambda Layer provenance")
     for resource, configuration in layers.items():
       print("lambda layer provenance")
       ContentUri = configuration['Properties']['ContentUri']
-      subprocess.run([f'aws s3 cp {ContentUri} {ContentUri}',f'--metadata {metadata}'])
+      os.system(f'aws s3 cp {ContentUri} {ContentUri} --metadata {metadata}')
 
 
 
 def upload_artifact():
   print("Zipping the CloudFormation template")
-  subprocess.run('zip template.zip cf-template.yaml')
+  os.system('zip template.zip cf-template.yaml')
   print("Uploading zipped CloudFormation artifact to S3")
   metadata = [f'repository={repository}',
               f'commitsha={commit_sha}',
@@ -100,8 +101,7 @@ def upload_artifact():
               f'skipcanary={skip_canary}',
               f'codepipeline-artifact-revision-summary={version_number}']
   metadata = ','.join(metadata)
-  subprocess.run(f'aws s3 cp template.zip "s3://{artifact_bucket}/template.zip"',
-                f'--metadata {metadata}')
+  os.system(f'aws s3 cp template.zip "s3://{artifact_bucket}/template.zip" --metadata {metadata}')
 
 signing_profiles(template_file_name)
 sign_resources(template_file_name, signing_profiles)
