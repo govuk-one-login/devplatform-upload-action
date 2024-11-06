@@ -37,25 +37,25 @@ def signing_profiles_list(template_file_name):
     app_template = Template.from_string(templateFile.read())
     print("Parsing resources to be signed")
     functions = app_template.find_resources(type="AWS::Serverless::Function")
-    print("functions", functions)
+    print("functions:", functions)
     layers = app_template.find_resources(type="AWS::Serverless::LayerVersion")
-    print("layers", layers)
+    print("layers:", layers)
     resources = functions | layers
     print(resources)
-    signing_profiles = []
+    signing_profiles = ''
     print(signing_profiles)
 
     for resource in resources:
       signing_profiles += f'{resource}={signing_profile_name} '
 
-    print("signing profiles:", ''.join(signing_profiles))
+  print("signing profiles:", ''.join(signing_profiles))
 
-  return ''.join(signing_profiles)
-
-signing_profiles = signing_profiles_list(template_file_name)
+  signing_profiles = ''.join(signing_profiles)
+  return signing_profiles
 
 
 def sign_resources(template_file_name, signing_profiles):
+  print("signing profiles2:", signing_profiles)
   print("Signing resources with sam package")
   if signing_profiles:
     os.system(f'sam package --s3-bucket=a{artifact_bucket} --template-file={template_file_name} --output-template-file=cf-template.yaml --use-json --signing-profiles {signing_profiles}')
@@ -109,6 +109,7 @@ def upload_artifact():
   os.system(f'aws s3 cp template.zip "s3://{artifact_bucket}/template.zip" --metadata {metadata}')
 
 signing_profiles_list(template_file_name)
+signing_profiles = signing_profiles_list(template_file_name)
 sign_resources(template_file_name, signing_profiles)
 lambda_provenance(cf_template)
 upload_artifact()
