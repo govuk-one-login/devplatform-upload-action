@@ -17,7 +17,7 @@ github_actor = os.environ['GITHUB_ACTOR']
 version_number = os.environ['VERSION_NUMBER']
 merge_time = os.environ['MERGE_TIME']
 skip_canary = os.environ['SKIP_CANARY_DEPLOYMENT']
-cf_template = 'cf-template.yaml'
+working_directory = os.environ['WORKING_DIRECTORY']
 
 # signing_profile_name = "SigningProfile_2KY7QMWu5CUY"
 # template_file_name = "/Users/bgalliano/Projects/GDS/di-devplatform/devplatform-upload-action/sam-app2/.aws-sam/build/json-template.yaml"
@@ -30,20 +30,16 @@ cf_template = 'cf-template.yaml'
 # version_number = "v123"
 # merge_time = 0
 # skip_canary = 0
-# cf_template = "/Users/bgalliano/Projects/GDS/di-devplatform/devplatform-upload-action/sam-app2/.aws-sam/build/cf-template.yaml"
+# working_directory = "./sam-app2/.aws-sam/build"
 
 def signing_profiles_list(template_file_name):
   with open (template_file_name) as templateFile:
     app_template = Template.from_string(templateFile.read())
     print("Parsing resources to be signed")
     functions = app_template.find_resources(type="AWS::Serverless::Function")
-    print("functions:", functions)
     layers = app_template.find_resources(type="AWS::Serverless::LayerVersion")
-    print("layers:", layers)
     resources = functions | layers
-    print(resources)
     signing_profiles = ''
-    print(signing_profiles)
 
     for resource in resources:
       signing_profiles += f'{resource}={signing_profile_name} '
@@ -55,13 +51,13 @@ def signing_profiles_list(template_file_name):
 
 
 def sign_resources(template_file_name, signing_profiles):
-  print("signing profiles2:", signing_profiles)
   print("Signing resources with sam package")
   if signing_profiles:
     os.system(f'sam package --s3-bucket=a{artifact_bucket} --template-file={template_file_name} --output-template-file=cf-template.yaml --use-json --signing-profiles {signing_profiles}')
   else:
     os.system(f'sam package --s3-bucket={artifact_bucket} --template-file={template_file_name} --output-template-file=cf-template.yaml --use-json')
-  return
+  return cf_template
+
 
 def lambda_provenance(cf_template):
   print("Writing Lambda provenance")
@@ -91,7 +87,6 @@ def lambda_provenance(cf_template):
       os.system(f'aws s3 cp {ContentUri} {ContentUri} --metadata {metadata}')
 
 
-
 def upload_artifact():
   print("Zipping the CloudFormation template")
   os.system(f'zip template.zip {cf_template}')
@@ -111,5 +106,6 @@ def upload_artifact():
 signing_profiles_list(template_file_name)
 signing_profiles = signing_profiles_list(template_file_name)
 sign_resources(template_file_name, signing_profiles)
+cf_template = f'{working_directory}/cf-template.yaml'
 lambda_provenance(cf_template)
 upload_artifact()
