@@ -85,5 +85,6 @@ runs:
         SIGNING_PROFILE: ${{ inputs.signing-profile-name }}
         TEMPLATE_FILE: ${{ env.TEMPLATE_FILE }}
         VERSION_NUMBER: ${{ inputs.version-number }}
+        WORKING_DIRECTORY: ${{ inputs.working-directory }}
       run: ${{ github.action_path }}/scripts/upload.py
       shell: bash
