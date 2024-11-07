@@ -23,7 +23,7 @@ working_directory = os.environ['WORKING_DIRECTORY']
 # template_file_name = "/Users/bgalliano/Projects/GDS/di-devplatform/devplatform-upload-action/sam-app2/.aws-sam/build/json-template.yaml"
 # artifact_bucket = "demo-sam-app2-pipeline-githubartifactsourcebucket-kp3njaayiyde"
 # repository = "devplatform-demo-sam-app"
-# commit_message = "commitmessage"
+# commit_message = "commit-message"
 # commit_sha = "commit-sha"
 # commit_tag = "madeuptag"
 # github_actor = "Beca-Galliano"
@@ -53,10 +53,11 @@ def signing_profiles_list(template_file_name):
 def sign_resources(template_file_name, signing_profiles):
   print("Signing resources with sam package")
   if signing_profiles:
-    os.system(f'sam package --s3-bucket=a{artifact_bucket} --template-file={template_file_name} --output-template-file=cf-template.yaml --use-json --signing-profiles {signing_profiles}')
+    os.system(f'sam package --s3-bucket={artifact_bucket} --template-file={template_file_name} --output-template-file=cf-template.yaml --use-json --signing-profiles {signing_profiles}')
   else:
     os.system(f'sam package --s3-bucket={artifact_bucket} --template-file={template_file_name} --output-template-file=cf-template.yaml --use-json')
-  os.system(f'ls')
+  cf_template = 'cf-template.yaml'
+  return cf_template
 
 
 def lambda_provenance(cf_template):
@@ -106,6 +107,6 @@ def upload_artifact():
 signing_profiles_list(template_file_name)
 signing_profiles = signing_profiles_list(template_file_name)
 sign_resources(template_file_name, signing_profiles)
-cf_template = 'cf-template.yaml'
+cf_template = sign_resources(template_file_name, signing_profiles)
 lambda_provenance(cf_template)
 upload_artifact()
