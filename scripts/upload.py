@@ -56,7 +56,6 @@ def sign_resources(template_file_name, signing_profiles):
     os.system(f'sam package --s3-bucket=a{artifact_bucket} --template-file={template_file_name} --output-template-file=cf-template.yaml --use-json --signing-profiles {signing_profiles}')
   else:
     os.system(f'sam package --s3-bucket={artifact_bucket} --template-file={template_file_name} --output-template-file=cf-template.yaml --use-json')
-  return cf_template
 
 
 def lambda_provenance(cf_template):
