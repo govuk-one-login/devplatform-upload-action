@@ -21,6 +21,7 @@ It adds the following metadata to the S3 object:
 | signing-profile-name | true     | The name of the Signing Profile resource in AWS                                          | signing-profile-1234                |
 | working-directory    | false    | The working directory containing the SAM app and the template file                       | ./sam-app                           |
 | template-file        | false    | The name and path of the CF template for the application. This defaults to template.yaml | .aws-sam/build/template.yaml        |
+| version-number       | false    | The version number of the application being deployed. This field accepts any input and will be passed as the value for both `codepipeline-artifact-revision-summary` and `release` metadata. While `codepipeline-artifact-revision-summary` is a special metadata that will display its value in the CodePipeline console, `release` was implemented for a particular team's use case. If left blank, the metadata will not be passed and CodePipeline will default revision summary to the latest artifact source version ID.                    | version-number-1234                 |
 
 ## Usage Example
 
