@@ -44,5 +44,12 @@ yq '.Resources.* | select(has("Type") and .Type == "AWS::Serverless::LayerVersio
 echo "Zipping the CloudFormation template"
 zip template.zip cf-template.yaml
 
+if [ -n "$VERSION_NUMBER" ]; then
+    REVISION_SUMMARY="Version: $VERSION_NUMBER | SHA: $GITHUB_SHA"
+    METADATA_ARGS="repository=$GITHUB_REPOSITORY,commitsha=$GITHUB_SHA,committag=$GIT_TAG,commitmessage=$COMMIT_MSG,mergetime=$MERGE_TIME,skipcanary=$SKIP_CANARY_DEPLOYMENT,commitauthor='$GITHUB_ACTOR',release=$VERSION_NUMBER,codepipeline-artifact-revision-summary=$VERSION_NUMBER"
+else
+    METADATA_ARGS="repository=$GITHUB_REPOSITORY,commitsha=$GITHUB_SHA,committag=$GIT_TAG,commitmessage=$COMMIT_MSG,mergetime=$MERGE_TIME,skipcanary=$SKIP_CANARY_DEPLOYMENT,commitauthor='$GITHUB_ACTOR'"
+fi
+
 echo "Uploading zipped CloudFormation artifact to S3"
-aws s3 cp template.zip "s3://$ARTIFACT_BUCKET/template.zip" --metadata "repository=$GITHUB_REPOSITORY,commitsha=$GITHUB_SHA,committag=$GIT_TAG,commitmessage=$COMMIT_MSG,mergetime=$MERGE_TIME,skipcanary=$SKIP_CANARY_DEPLOYMENT,commitauthor='$GITHUB_ACTOR',release=$VERSION_NUMBER,codepipeline-artifact-revision-summary=$VERSION_NUMBER"
+aws s3 cp template.zip "s3://$ARTIFACT_BUCKET/template.zip" --metadata "$METADATA_ARGS"
