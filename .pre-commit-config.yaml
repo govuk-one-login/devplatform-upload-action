@@ -31,3 +31,9 @@ repos:
     hooks:
       - id: shfmt
         args: [--space-redirects, --case-indent, --indent, "2"]
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v9.20.1
+    hooks:
+      - id: eslint
+        types: [yaml]
+        args: [--fix]

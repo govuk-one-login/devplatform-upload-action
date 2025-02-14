@@ -324,6 +324,5 @@ cf-template.yaml
 
 node_modules
 
-
 venv
 .venv/
