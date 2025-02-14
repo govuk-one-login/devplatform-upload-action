@@ -26,7 +26,6 @@ Release a new major version as normal following semantic versioning.
 ## Checklist
 
 - [ ] Is my change backwards compatible? **_Please include evidence_**
-- [ ] I have installed and run pre-commit
 - [ ] I have tested this and added output to Jira
   **_Comment:_**
 - [ ] Automated tests added
