@@ -22,13 +22,13 @@ fi
 # This only gets set if there is a tag on the current commit.
 GIT_TAG=$(git describe --tags --first-parent --always)
 # Cleaning the commit message to remove special characters
-COMMIT_MSG=$(echo $COMMIT_MESSAGE | tr '\n' ' ' | tr -dc '[:alnum:]- ' | cut -c1-50)
+COMMIT_MSG=$(echo "$COMMIT_MESSAGE" | tr '\n' ' ' | tr -dc '[:alnum:]- ' | cut -c1-50)
 # Gets merge time to main - displaying it in UTC timezone
 MERGE_TIME=$(TZ=UTC0 git log -1 --format=%cd --date=format-local:'%Y-%m-%d %H:%M:%S')
 
 # Sanitise commit message and search for canary deployment instructions
-MSG=$(echo $COMMIT_MESSAGE | tr '\n' ' ' | tr '[:upper:]' '[:lower:]')
-if [[ $MSG =~ "[skip canary]" || $MSG =~ "[canary skip]" || $MSG =~ "[no canary]" ]]; then
+MSG=$(echo "$COMMIT_MESSAGE" | tr '\n' ' ' | tr '[:upper:]' '[:lower:]')
+if [[ $MSG =~ \[(skip canary|no canary|canary skip)\] ]]; then
     SKIP_CANARY_DEPLOYMENT=1
 else
     SKIP_CANARY_DEPLOYMENT=0
