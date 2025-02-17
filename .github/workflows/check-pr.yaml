@@ -1,0 +1,28 @@
+name: Check PR
+
+on: pull_request
+permissions: {}
+
+concurrency:
+  group: check-pr-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  pre-commit:
+    name: pre-commit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run pre-commit
+        uses: govuk-one-login/github-actions/code-quality/run-pre-commit@f3cfea4bacd200631cae801a8bca52e57bcf40b7
+        with:
+          install-dependencies: true
+          all-files: true
+
+  check-shell-scripts:
+    name: Check shell scripts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run shell checks
+        uses: govuk-one-login/github-actions/code-quality/check-shell-scripts@f3cfea4bacd200631cae801a8bca52e57bcf40b7
+        with:
+          shell: bash

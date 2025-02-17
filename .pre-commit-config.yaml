@@ -1,25 +1,39 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
----
-default_stages: [commit]
+default_stages: [pre-commit]
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.2.0
+    rev: v5.0.0
     hooks:
+      - id: check-yaml
       - id: detect-private-key
       - id: detect-aws-credentials
-        args: ['--allow-missing-credentials']
+        args: [--allow-missing-credentials]
       - id: mixed-line-ending
+        args: [--fix, lf]
+      - id: end-of-file-fixer
       - id: trailing-whitespace
       - id: check-merge-conflict
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
   - repo: https://github.com/Yelp/detect-secrets
-    rev: v1.2.0
+    rev: v1.5.0
     hooks:
       - id: detect-secrets
-        args: ['--baseline', '.secrets.baseline']
-        exclude: .*/keys/.*|
-              (
-                     ^package-lock.json$|
-                     ^Pipfile|
-                     ^pyproject.toml
-              )
+        args: [--baseline, .secrets.baseline]
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.5.5
+    hooks:
+      - id: remove-tabs
+        args: [--whitespaces-count, "2"]
+  - repo: https://github.com/scop/pre-commit-shfmt
+    rev: v3.10.0-2
+    hooks:
+      - id: shfmt
+        args: [--space-redirects, --case-indent, --indent, "2"]
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v9.20.1
+    hooks:
+      - id: eslint
+        types: [yaml]
+        args: [--fix]

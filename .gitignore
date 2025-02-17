@@ -1,4 +1,3 @@
-
 # Created by https://www.toptal.com/developers/gitignore/api/vim,sam,java,macos,direnv,terraform,intellij+all,visualstudiocode,gradle
 # Edit at https://www.toptal.com/developers/gitignore?templates=vim,sam,java,macos,direnv,terraform,intellij+all,visualstudiocode,gradle
 
@@ -324,7 +323,6 @@ gradle-app.setting
 cf-template.yaml
 
 node_modules
-
 
 venv
 .venv/

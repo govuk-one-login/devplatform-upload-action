@@ -1,27 +1,26 @@
-name: 'Upload Lambdas'
-description: 'Packages and uploads'
+name: Upload Lambdas
+description: Packages and uploads
+
 inputs:
   artifact-bucket-name:
-    description: 'The name of the artifact S3 bucket'
+    description: The name of the artifact S3 bucket
     required: true
   signing-profile-name:
-    description: 'The name of the Signing Profile'
+    description: The name of the Signing Profile
     required: true
   working-directory:
-    description: 'The working directory containing the SAM app'
+    description: The working directory containing the SAM app
     required: false
   template-file:
-    description: 'The name and path of the CF template for the application. This defaults to template.yaml'
+    description: The name and path of the CF template for the application. This defaults to template.yaml
     required: false
     default: template.yaml
   version-number:
-    description: The version number of the application being deployed. This defaults to ""'
+    description: The version number of the application being deployed
     required: false
-    default: ""
 
 runs:
-  using: "composite"
-
+  using: composite
   steps:
     - name: Upload Lambdas to S3
       working-directory: ${{ inputs.working-directory }}
