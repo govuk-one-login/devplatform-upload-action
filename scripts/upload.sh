@@ -11,8 +11,7 @@ read -ra LIST <<< "$RESOURCES"
 PROFILES=("${LIST[@]/%/="$SIGNING_PROFILE"}")
 
 echo "Packaging SAM app"
-if [ "${#PROFILES[@]}" -eq 0 ]
-then
+if [ "${#PROFILES[@]}" -eq 0 ]; then
   echo "No resources that require signing found"
   sam package --s3-bucket="$ARTIFACT_BUCKET" --template-file="$TEMPLATE_FILE" --output-template-file=cf-template.yaml
 else
@@ -22,24 +21,25 @@ fi
 # This only gets set if there is a tag on the current commit.
 GIT_TAG=$(git describe --tags --first-parent --always)
 # Cleaning the commit message to remove special characters
-COMMIT_MSG=$(echo $COMMIT_MESSAGE | tr '\n' ' ' | tr -dc '[:alnum:]- ' | cut -c1-50)
+COMMIT_MSG=$(echo "$COMMIT_MESSAGE" | tr '\n' ' ' | tr -dc '[:alnum:]- ' | cut -c1-50)
 # Gets merge time to main - displaying it in UTC timezone
 MERGE_TIME=$(TZ=UTC0 git log -1 --format=%cd --date=format-local:'%Y-%m-%d %H:%M:%S')
 
 # Sanitise commit message and search for canary deployment instructions
-MSG=$(echo $COMMIT_MESSAGE | tr '\n' ' ' | tr '[:upper:]' '[:lower:]')
-if [[ $MSG =~ "[skip canary]" || $MSG =~ "[canary skip]" || $MSG =~ "[no canary]" ]]; then
-    SKIP_CANARY_DEPLOYMENT=1
+MSG=$(echo "$COMMIT_MESSAGE" | tr '\n' ' ' | tr '[:upper:]' '[:lower:]')
+if [[ $MSG =~ \[(skip canary|no canary|canary skip)\] ]]; then
+  SKIP_CANARY_DEPLOYMENT=1
 else
-    SKIP_CANARY_DEPLOYMENT=0
+  SKIP_CANARY_DEPLOYMENT=0
 fi
 
 echo "Writing Lambda provenance"
-yq '.Resources.* | select(has("Type") and has("Properties.CodeUri") and .Type == "AWS::Serverless::Function") | .Properties.CodeUri' cf-template.yaml \
-    | xargs -L1 -I{} aws s3 cp "{}" "{}" --metadata "repository=$GITHUB_REPOSITORY,commitsha=$GITHUB_SHA,committag=$GIT_TAG,commitmessage=$COMMIT_MSG,commitauthor='$GITHUB_ACTOR',release=$VERSION_NUMBER"
+yq '.Resources.* | select(has("Type") and has("Properties.CodeUri") and .Type == "AWS::Serverless::Function") | .Properties.CodeUri' cf-template.yaml |
+  xargs -L1 -I{} aws s3 cp "{}" "{}" --metadata "repository=$GITHUB_REPOSITORY,commitsha=$GITHUB_SHA,committag=$GIT_TAG,commitmessage=$COMMIT_MSG,commitauthor='$GITHUB_ACTOR',release=$VERSION_NUMBER"
+
 echo "Writing Lambda Layer provenance"
-yq '.Resources.* | select(has("Type") and .Type == "AWS::Serverless::LayerVersion") | .Properties.ContentUri' cf-template.yaml \
-    | xargs -L1 -I{} aws s3 cp "{}" "{}" --metadata "repository=$GITHUB_REPOSITORY,commitsha=$GITHUB_SHA,committag=$GIT_TAG,commitmessage=$COMMIT_MSG,commitauthor='$GITHUB_ACTOR',release=$VERSION_NUMBER"
+yq '.Resources.* | select(has("Type") and .Type == "AWS::Serverless::LayerVersion") | .Properties.ContentUri' cf-template.yaml |
+  xargs -L1 -I{} aws s3 cp "{}" "{}" --metadata "repository=$GITHUB_REPOSITORY,commitsha=$GITHUB_SHA,committag=$GIT_TAG,commitmessage=$COMMIT_MSG,commitauthor='$GITHUB_ACTOR',release=$VERSION_NUMBER"
 
 echo "Zipping the CloudFormation template"
 zip template.zip cf-template.yaml
