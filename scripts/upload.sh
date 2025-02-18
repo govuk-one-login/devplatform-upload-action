@@ -44,5 +44,11 @@ yq '.Resources.* | select(has("Type") and .Type == "AWS::Serverless::LayerVersio
 echo "Zipping the CloudFormation template"
 zip template.zip cf-template.yaml
 
+METADATA_ARGS="repository=$GITHUB_REPOSITORY,commitsha=$GITHUB_SHA,committag=$GIT_TAG,commitmessage=$COMMIT_MSG,mergetime=$MERGE_TIME,skipcanary=$SKIP_CANARY_DEPLOYMENT,commitauthor='$GITHUB_ACTOR'"
+# Check if VERSION_NUMBER is set and append it to METADATA_ARGS
+if [ -n "$VERSION_NUMBER" ]; then
+  METADATA_ARGS="$METADATA_ARGS,release=$VERSION_NUMBER,codepipeline-artifact-revision-summary=$VERSION_NUMBER"
+fi
+
 echo "Uploading zipped CloudFormation artifact to S3"
-aws s3 cp template.zip "s3://$ARTIFACT_BUCKET/template.zip" --metadata "repository=$GITHUB_REPOSITORY,commitsha=$GITHUB_SHA,committag=$GIT_TAG,commitmessage=$COMMIT_MSG,mergetime=$MERGE_TIME,skipcanary=$SKIP_CANARY_DEPLOYMENT,commitauthor='$GITHUB_ACTOR',release=$VERSION_NUMBER,codepipeline-artifact-revision-summary=$VERSION_NUMBER"
+aws s3 cp template.zip "s3://$ARTIFACT_BUCKET/template.zip" --metadata "$METADATA_ARGS"
