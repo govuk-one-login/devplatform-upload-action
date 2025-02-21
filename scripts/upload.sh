@@ -34,12 +34,12 @@ else
 fi
 
 echo "Writing Lambda provenance"
-yq '.Resources.* | select(has("Type") and has("Properties.CodeUri") and .Type == "AWS::Serverless::Function") | .Properties.CodeUri' cf-template.yaml |
-  xargs -L1 -I{} aws s3 cp "{}" "{}" --metadata "repository=$GITHUB_REPOSITORY,commitsha=$GITHUB_SHA,committag=$GIT_TAG,commitmessage=$COMMIT_MSG,commitauthor='$GITHUB_ACTOR',release=$VERSION_NUMBER"
+yq '.Resources.* | select(has("Type") and has("Properties.CodeUri") and .Type == "AWS::Serverless::Function") | .Properties.CodeUri' cf-template.yaml \
+  | xargs -L1 -I{} aws s3 cp "{}" "{}" --metadata "repository=$GITHUB_REPOSITORY,commitsha=$GITHUB_SHA,committag=$GIT_TAG,commitmessage=$COMMIT_MSG,commitauthor='$GITHUB_ACTOR',release=$VERSION_NUMBER"
 
 echo "Writing Lambda Layer provenance"
-yq '.Resources.* | select(has("Type") and .Type == "AWS::Serverless::LayerVersion") | .Properties.ContentUri' cf-template.yaml |
-  xargs -L1 -I{} aws s3 cp "{}" "{}" --metadata "repository=$GITHUB_REPOSITORY,commitsha=$GITHUB_SHA,committag=$GIT_TAG,commitmessage=$COMMIT_MSG,commitauthor='$GITHUB_ACTOR',release=$VERSION_NUMBER"
+yq '.Resources.* | select(has("Type") and .Type == "AWS::Serverless::LayerVersion") | .Properties.ContentUri' cf-template.yaml \
+  | xargs -L1 -I{} aws s3 cp "{}" "{}" --metadata "repository=$GITHUB_REPOSITORY,commitsha=$GITHUB_SHA,committag=$GIT_TAG,commitmessage=$COMMIT_MSG,commitauthor='$GITHUB_ACTOR',release=$VERSION_NUMBER"
 
 echo "Zipping the CloudFormation template"
 zip template.zip cf-template.yaml
