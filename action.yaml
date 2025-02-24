@@ -1,5 +1,5 @@
-name: Upload Lambdas
-description: Packages and uploads
+name: Upload SAM package
+description: Packages and uploads a SAM template to S3
 
 inputs:
   artifact-bucket-name:
@@ -12,7 +12,7 @@ inputs:
     description: The working directory containing the SAM app
     required: false
   template-file:
-    description: The name and path of the CF template for the application. This defaults to template.yaml
+    description: The path to the application CloudFormation template relative to the working directory
     required: false
     default: template.yaml
   version-number:
@@ -22,7 +22,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Upload Lambdas to S3
+    - name: Upload SAM package
       working-directory: ${{ inputs.working-directory }}
       env:
         VERSION: ${{ inputs.version-number }}
