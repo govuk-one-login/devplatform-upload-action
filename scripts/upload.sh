@@ -51,23 +51,18 @@ release_metadata=(
 )
 
 metadata=$(IFS="," && echo "${release_metadata[*]}")
+echo "::group::Writing Lambda provenance"
 
-echo "Writing Lambda provenance"
-yq '.Resources.* | select(.Type == "AWS::Serverless::Function" and .Properties | has("CodeUri")) | .Properties.CodeUri' cf-template.yaml |
-  xargs -L1 -I{} aws s3 cp "{}" "{}" --metadata "$metadata"
+for lambda in "${lambdas[@]}"; do
+  if uri=$(yq --exit-status ".Resources.${lambda}.Properties | .CodeUri // .ContentUri" "$TEMPLATE_OUT_FILE"); then
+    echo "❭ $lambda"
+    aws s3 cp "$uri" "$uri" --metadata "$metadata"
+  fi
+done
 
-echo "Writing Lambda Layer provenance"
-yq '.Resources.* | select(.Type == "AWS::Serverless::LayerVersion") | .Properties.ContentUri' cf-template.yaml |
-  xargs -L1 -I{} aws s3 cp "{}" "{}" --metadata "$metadata"
+echo "::endgroup::"
+echo "» Zipping CloudFormation template"
+zip template.zip "$TEMPLATE_OUT_FILE"
 
-echo "Zipping the CloudFormation template"
-zip template.zip cf-template.yaml
-
-METADATA_ARGS="repository=$GITHUB_REPOSITORY,commitsha=$GITHUB_SHA,committag=$GIT_TAG,commitmessage=$COMMIT_MSG,mergetime=$MERGE_TIME,skipcanary=$SKIP_CANARY_DEPLOYMENT,commitauthor='$GITHUB_ACTOR'"
-# Check if VERSION_NUMBER is set and append it to METADATA_ARGS
-if [ -n "$VERSION_NUMBER" ]; then
-  METADATA_ARGS="$METADATA_ARGS,release=$VERSION_NUMBER,codepipeline-artifact-revision-summary=$VERSION_NUMBER"
-fi
-
-echo "Uploading zipped CloudFormation artifact to S3"
+echo "» Uploading artifact to S3"
 aws s3 cp template.zip "s3://$ARTIFACT_BUCKET/template.zip" --metadata "$metadata"
