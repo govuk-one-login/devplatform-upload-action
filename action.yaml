@@ -17,6 +17,10 @@ inputs:
     default: template.yaml
   version-number:
     description: The version number of the application being deployed
+    deprecationMessage: Use the 'version' input instead
+    required: false
+  version:
+    description: The version of the application being deployed
     required: false
 
 runs:
@@ -25,7 +29,7 @@ runs:
     - name: Upload SAM package
       working-directory: ${{ inputs.working-directory }}
       env:
-        VERSION: ${{ inputs.version-number }}
+        VERSION: ${{ inputs.version || inputs.version-number }}
         TEMPLATE_FILE: ${{ inputs.template-file }}
         SIGNING_PROFILE: ${{ inputs.signing-profile-name }}
         ARTIFACT_BUCKET: ${{ inputs.artifact-bucket-name }}
