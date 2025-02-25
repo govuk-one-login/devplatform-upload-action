@@ -31,7 +31,7 @@ sam package \
   --signing-profiles "${lambdas[*]/%/=$SIGNING_PROFILE}"
 
 echo "::endgroup::"
-echo "» Gathering release metadata"
+echo "::group::Gathering release metadata"
 
 [[ $COMMIT_MESSAGE =~ \[(skip canary|no canary|canary skip)\] ]] && skip_canary=1
 
@@ -51,6 +51,9 @@ release_metadata=(
 )
 
 metadata=$(IFS="," && echo "${release_metadata[*]}")
+column -t -s= < <(tr "," "\n" <<< "$metadata")
+
+echo "::endgroup::"
 echo "::group::Writing Lambda provenance"
 
 for lambda in "${lambdas[@]}"; do
