@@ -6,8 +6,8 @@ inputs:
     description: The name of the artifact S3 bucket
     required: true
   signing-profile-name:
-    description: The name of the Signing Profile
-    required: true
+    description: The name of the Signing Profile. This should be unset in dev environments
+    required: false
   working-directory:
     description: The working directory containing the SAM app
     required: false

@@ -4,11 +4,11 @@ set -euo pipefail
 
 : "${COMMIT_MESSAGE:?}"
 : "${ARTIFACT_BUCKET:?}"
-: "${SIGNING_PROFILE:?}"
 : "${GITHUB_REPOSITORY:?}"
 : "${GITHUB_ACTOR:?}"
 
 : "${VERSION:-}"
+: "${SIGNING_PROFILE:-}"
 : "${TEMPLATE_FILE:=template.yaml}"
 : "${TEMPLATE_OUT_FILE:=cf-template.yaml}"
 : "${GITHUB_SHA:=$(git rev-parse HEAD)}"
@@ -24,11 +24,14 @@ mapfile -t lambdas < <(yq \
 echo "ℹ Found ${#lambdas[@]} Lambda(s) in the template"
 echo "::group::Packaging SAM app"
 
+[[ ${SIGNING_PROFILE:-} ]] && signing_profiles=${lambdas[*]/%/=$SIGNING_PROFILE}
+[[ ${signing_profiles:-} ]] || echo "⚠ Code will not be signed"
+
 sam package \
   --template-file="$TEMPLATE_FILE" \
   --output-template-file="$TEMPLATE_OUT_FILE" \
   --s3-bucket="$ARTIFACT_BUCKET" \
-  --signing-profiles "${lambdas[*]/%/=$SIGNING_PROFILE}"
+  --signing-profiles "${signing_profiles:-}"
 
 echo "::endgroup::"
 echo "::group::Gathering release metadata"
