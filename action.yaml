@@ -25,11 +25,10 @@ runs:
     - name: Upload Lambdas to S3
       working-directory: ${{ inputs.working-directory }}
       env:
-        ARTIFACT_BUCKET: ${{ inputs.artifact-bucket-name }}
-        SIGNING_PROFILE: ${{ inputs.signing-profile-name }}
+        VERSION: ${{ inputs.version-number }}
         TEMPLATE_FILE: ${{ inputs.template-file }}
+        SIGNING_PROFILE: ${{ inputs.signing-profile-name }}
+        ARTIFACT_BUCKET: ${{ inputs.artifact-bucket-name }}
         COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
-        GITHUB_ACTOR: ${{ github.actor }}
-        VERSION_NUMBER: ${{ inputs.version-number }}
       run: ${{ github.action_path }}/scripts/upload.sh
       shell: bash

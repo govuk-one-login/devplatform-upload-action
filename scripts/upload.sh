@@ -1,11 +1,17 @@
 #!/usr/bin/env bash
+shopt -s nocasematch
 set -euo pipefail
 
+: "${COMMIT_MESSAGE:?}"
 : "${ARTIFACT_BUCKET:?}"
 : "${SIGNING_PROFILE:?}"
+: "${GITHUB_REPOSITORY:?}"
+: "${GITHUB_ACTOR:?}"
 
+: "${VERSION:-}"
 : "${TEMPLATE_FILE:=template.yaml}"
 : "${TEMPLATE_OUT_FILE:=cf-template.yaml}"
+: "${GITHUB_SHA:=$(git rev-parse HEAD)}"
 
 echo "» Parsing Lambdas to be signed"
 
@@ -25,29 +31,34 @@ sam package \
   --signing-profiles "${lambdas[*]/%/=$SIGNING_PROFILE}"
 
 echo "::endgroup::"
+echo "» Gathering release metadata"
 
-# This only gets set if there is a tag on the current commit.
-GIT_TAG=$(git describe --tags --first-parent --always)
-# Cleaning the commit message to remove special characters
-COMMIT_MSG=$(echo "$COMMIT_MESSAGE" | tr '\n' ' ' | tr -dc '[:alnum:]- ' | cut -c1-50)
-# Gets merge time to main - displaying it in UTC timezone
-MERGE_TIME=$(TZ=UTC0 git log -1 --format=%cd --date=format-local:'%Y-%m-%d %H:%M:%S')
+[[ $COMMIT_MESSAGE =~ \[(skip canary|no canary|canary skip)\] ]] && skip_canary=1
 
-# Sanitise commit message and search for canary deployment instructions
-MSG=$(echo "$COMMIT_MESSAGE" | tr '\n' ' ' | tr '[:upper:]' '[:lower:]')
-if [[ $MSG =~ \[(skip canary|no canary|canary skip)\] ]]; then
-  SKIP_CANARY_DEPLOYMENT=1
-else
-  SKIP_CANARY_DEPLOYMENT=0
-fi
+release_metadata=(
+  "commitsha=$GITHUB_SHA"                                                                       # Head commit SHA
+  "committag=$(git describe --tags --first-parent --always)"                                    # Head commit tag or short SHA
+  "commitmessage=$(echo "$COMMIT_MESSAGE" | tr "\n" " " | tr -dc "[:alnum:]#:- " | cut -c1-50)" # Shortened head commit message
+  "mergetime=$(TZ=UTC0 git log -1 --format=%cd --date=format-local:"%F %T")"                    # Merge to main UTC timestamp
+  "commitauthor='$GITHUB_ACTOR'"
+  "repository=$GITHUB_REPOSITORY"
+  "skipcanary=${skip_canary:-0}"
+)
+
+[[ ${VERSION:-} ]] && release_metadata+=(
+  "codepipeline-artifact-revision-summary=$VERSION"
+  "release=$VERSION"
+)
+
+metadata=$(IFS="," && echo "${release_metadata[*]}")
 
 echo "Writing Lambda provenance"
 yq '.Resources.* | select(.Type == "AWS::Serverless::Function" and .Properties | has("CodeUri")) | .Properties.CodeUri' cf-template.yaml |
-  xargs -L1 -I{} aws s3 cp "{}" "{}" --metadata "repository=$GITHUB_REPOSITORY,commitsha=$GITHUB_SHA,committag=$GIT_TAG,commitmessage=$COMMIT_MSG,commitauthor='$GITHUB_ACTOR',release=$VERSION_NUMBER"
+  xargs -L1 -I{} aws s3 cp "{}" "{}" --metadata "$metadata"
 
 echo "Writing Lambda Layer provenance"
 yq '.Resources.* | select(.Type == "AWS::Serverless::LayerVersion") | .Properties.ContentUri' cf-template.yaml |
-  xargs -L1 -I{} aws s3 cp "{}" "{}" --metadata "repository=$GITHUB_REPOSITORY,commitsha=$GITHUB_SHA,committag=$GIT_TAG,commitmessage=$COMMIT_MSG,commitauthor='$GITHUB_ACTOR',release=$VERSION_NUMBER"
+  xargs -L1 -I{} aws s3 cp "{}" "{}" --metadata "$metadata"
 
 echo "Zipping the CloudFormation template"
 zip template.zip cf-template.yaml
@@ -59,4 +70,4 @@ if [ -n "$VERSION_NUMBER" ]; then
 fi
 
 echo "Uploading zipped CloudFormation artifact to S3"
-aws s3 cp template.zip "s3://$ARTIFACT_BUCKET/template.zip" --metadata "$METADATA_ARGS"
+aws s3 cp template.zip "s3://$ARTIFACT_BUCKET/template.zip" --metadata "$metadata"
