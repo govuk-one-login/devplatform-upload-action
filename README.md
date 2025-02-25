@@ -6,22 +6,26 @@ The action packages, signs the Lambda functions, and uploads the application to 
 
 It adds the following metadata to the S3 object:
 
-- committag - The tag of the git commit (if present), this falls back to a shortened commit has.
-- repository - The git repository where the file was loaded from.
-- commitmessage - The first 50 characters of the git commit message, trimmed to the following regex: `tr -dc '[:alnum:]- '`
-- commitsha - The full git commitsha of the git commit.
-- mergetime - Time in UTC when git merge happened.
-- skipcanary - 0 or 1 for skipcanary.
+| Key             | Description                                                                                                                                                                                                |
+|-----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `commitsha`     | The full SHA of the head git commit                                                                                                                                                                        |
+| `committag`     | The tag of the head git commit, if present, otherwise this falls back to the short commit SHA                                                                                                              |
+| `commitmessage` | The first 50 characters of the first line (subject) of the head commit message                                                                                                                             |
+| `mergetime`     | The timestamp when the head commit was committed in the UTC timezone. For PRs this is effectively the merge time                                                                                           |
+| `commitauthor`  | The name of the person or app that initiated the workflow run                                                                                                                                              |
+| `repository`    | The name of the git repository where the workflow was initiated from. This will usually be the repository containing the SAM template being deployed                                                       |
+| `skipcanary`    | A flag (0 or 1) to indicate whether the canary deployment should be skipped in the pipeline. This is determined by searching for a special string in the commit messages included in a workflow push event |
 
 ## Action Inputs
 
-| Input                | Required | Description                                                                              | Example                             |
-|----------------------|----------|------------------------------------------------------------------------------------------|-------------------------------------|
-| artifact-bucket-name | true     | The name of the artifact S3 bucket                                                       | artifact-bucket-1234                |
-| signing-profile-name | true     | The name of the Signing Profile resource in AWS                                          | signing-profile-1234                |
-| working-directory    | false    | The working directory containing the SAM app and the template file                       | ./sam-app                           |
-| template-file        | false    | The name and path of the CF template for the application. This defaults to template.yaml | .aws-sam/build/template.yaml        |
-| version-number       | false    | The version number of the application being deployed. This field accepts any input and will be passed as the value for both `codepipeline-artifact-revision-summary` and `release` metadata. While `codepipeline-artifact-revision-summary` is a special metadata that will display its value in the CodePipeline console, `release` was implemented for a particular team's use case. If left blank, the metadata will not be passed and CodePipeline will default revision summary to the latest artifact source version ID.                    | version-number-1234                 |
+| Input                | Required | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Example                      |
+|----------------------|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------|
+| artifact-bucket-name | true     | The name of the artifact S3 bucket                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | artifact-bucket-1234         |
+| signing-profile-name | true     | The name of the Signing Profile in AWS                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | signing-profile-1234         |
+| working-directory    | false    | The directory containing the built SAM application and processed template file                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | ./sam-app                    |
+| template-file        | false    | The path of the processed SAM template for the application relative to the working directory; defaults to `template.yaml`                                                                                                                                                                                                                                                                                                                                                                                                                         | .aws-sam/build/template.yaml |
+| version-number       | false    | Deprecated and replaced by `version` but still used as a fallback for backwards compatibility                                                                                                                                                                                                                                                                                                                                                                                                                                                     | version-number-1234          |
+| version              | false    | The version number of the application being deployed. This accepts any input and will used as the value for both the `codepipeline-artifact-revision-summary` and `release` metadata keys. While `codepipeline-artifact-revision-summary` is a special metadata that will display its value in the CodePipeline console, `release` was implemented for a particular team's use case. If left blank, the version keys will not be included in the metadata and CodePipeline will default revision summary to the latest artifact source version ID | version-1234                 |
 
 ## Usage Example
 
@@ -48,17 +52,21 @@ Pull in the action in your workflow as below, making sure to specify the release
 
 ## Releasing updates
 
-We follow [recommended best practices](https://docs.github.com/en/actions/creating-actions/releasing-and-maintaining-actions) for releasing new versions of the action.
+We
+follow [recommended best practices](https://docs.github.com/en/actions/creating-actions/releasing-and-maintaining-actions)
+for releasing new versions of the action.
 
 ### Non-breaking changes
 
-Release a new minor or patch version as appropriate. Then, update the base major version release (and any minor versions)
-to point to this latest commit. For example, if the latest major release is v2, and you have added a non-breaking feature,
-release v2.1.0 and point v2 to the same commit as v2.1.0.
+Release a new minor or patch version as appropriate. Then, update the base major version release (and any minor
+versions) to point to this latest commit. For example, if the latest major release is v2, and you have added a
+non-breaking feature, release v2.1.0 and point v2 to the same commit as v2.1.0.
 
-NOTE: Until v3 is released, you will need to point both v1 and v2 to the latest version since there are no breaking changes between them.
+NOTE: Until v3 is released, you will need to point both v1 and v2 to the latest version since there are no breaking
+changes between them.
 
-NOTE: In regard to Dependabot subscribers, Dependabot does not pick up and raise PRs for `PATCH` versions (i.e. v3.8.1) of a release ensure consumers are notified.
+NOTE: In regard to Dependabot subscribers, Dependabot does not pick up and raise PRs for `PATCH` versions (i.e. v3.8.1)
+of a release ensure consumers are notified.
 
 ### Breaking changes
 
@@ -68,13 +76,16 @@ Release a new major version as normal following semantic versioning.
 
 Once your PR is merged and the bug is fixed, make sure to float tags affected by the bug to the latest stable commit.
 
-For example, let's say commit `abcd001` introduced a bug and is tagged with `v2.3.1`.  You then merge commit `dcba002` with a fix to your solution:
+For example, let's say commit `abcd001` introduced a bug and is tagged with `v2.3.1`. You then merge commit `dcba002`
+with a fix to your solution:
 
 :bug: `abcd001` `v2.3.1`
 
 :white_check_mark: `dcba002`
 
-Instead of creating a new tag for the fix, you can update the `v2.3.1` tag to the latest stable commit with the following command:
+Instead of creating a new tag for the fix, you can update the `v2.3.1` tag to the latest stable commit with the
+following command:
+
 ```
 git tag -s -af v2.3.1 dcba002
 git push origin v2.3.1 -f

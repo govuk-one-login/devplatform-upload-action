@@ -1,54 +1,76 @@
-#! /bin/bash
+#!/usr/bin/env bash
+shopt -s nocasematch
+set -euo pipefail
 
-set -eu
+: "${ARTIFACT_BUCKET:?}"
+: "${GITHUB_REPOSITORY:?}"
+: "${GITHUB_ACTOR:?}"
 
-echo "Parsing resources to be signed"
-RESOURCES="$(yq '.Resources.* | select(has("Type") and .Type == "AWS::Serverless::Function" or .Type == "AWS::Serverless::LayerVersion") | path | .[1]' "$TEMPLATE_FILE" | xargs)"
-read -ra LIST <<< "$RESOURCES"
+: "${VERSION:-}"
+: "${SIGNING_PROFILE:-}"
+: "${COMMIT_MESSAGES:=}"
+: "${HEAD_MESSAGE:=$(git log -1 --format=%s)}"
+: "${GITHUB_SHA:=$(git rev-parse HEAD)}"
 
-# Construct the signing-profiles argument list
-# e.g.: (HelloWorldFunction1="signing-profile-name" HelloWorldFunction2="signing-profile-name")
-PROFILES=("${LIST[@]/%/="$SIGNING_PROFILE"}")
+: "${TEMPLATE_FILE:=template.yaml}"
+: "${TEMPLATE_OUT_FILE:=cf-template.yaml}"
 
-echo "Packaging SAM app"
-if [ "${#PROFILES[@]}" -eq 0 ]; then
-  echo "No resources that require signing found"
-  sam package --s3-bucket="$ARTIFACT_BUCKET" --template-file="$TEMPLATE_FILE" --output-template-file=cf-template.yaml
-else
-  sam package --s3-bucket="$ARTIFACT_BUCKET" --template-file="$TEMPLATE_FILE" --output-template-file=cf-template.yaml --signing-profiles "${PROFILES[*]}"
-fi
+echo "» Parsing Lambdas to be signed"
 
-# This only gets set if there is a tag on the current commit.
-GIT_TAG=$(git describe --tags --first-parent --always)
-# Cleaning the commit message to remove special characters
-COMMIT_MSG=$(echo "$COMMIT_MESSAGE" | tr '\n' ' ' | tr -dc '[:alnum:]- ' | cut -c1-50)
-# Gets merge time to main - displaying it in UTC timezone
-MERGE_TIME=$(TZ=UTC0 git log -1 --format=%cd --date=format-local:'%Y-%m-%d %H:%M:%S')
+mapfile -t lambdas < <(yq \
+  '.Resources[] | select(
+    .Type=="AWS::Serverless::Function" or
+    .Type=="AWS::Serverless::LayerVersion"
+  ) | key' "$TEMPLATE_FILE")
 
-# Sanitise commit message and search for canary deployment instructions
-MSG=$(echo "$COMMIT_MESSAGE" | tr '\n' ' ' | tr '[:upper:]' '[:lower:]')
-if [[ $MSG =~ \[(skip canary|no canary|canary skip)\] ]]; then
-  SKIP_CANARY_DEPLOYMENT=1
-else
-  SKIP_CANARY_DEPLOYMENT=0
-fi
+echo "ℹ Found ${#lambdas[@]} Lambda(s) in the template"
+echo "::group::Packaging SAM app"
 
-echo "Writing Lambda provenance"
-yq '.Resources.* | select(.Type == "AWS::Serverless::Function" and .Properties | has("CodeUri")) | .Properties.CodeUri' cf-template.yaml |
-  xargs -L1 -I{} aws s3 cp "{}" "{}" --metadata "repository=$GITHUB_REPOSITORY,commitsha=$GITHUB_SHA,committag=$GIT_TAG,commitmessage=$COMMIT_MSG,commitauthor='$GITHUB_ACTOR',release=$VERSION_NUMBER"
+[[ ${SIGNING_PROFILE:-} ]] && signing_profiles=${lambdas[*]/%/=$SIGNING_PROFILE}
+[[ ${signing_profiles:-} ]] || echo "⚠ Code will not be signed"
 
-echo "Writing Lambda Layer provenance"
-yq '.Resources.* | select(.Type == "AWS::Serverless::LayerVersion") | .Properties.ContentUri' cf-template.yaml |
-  xargs -L1 -I{} aws s3 cp "{}" "{}" --metadata "repository=$GITHUB_REPOSITORY,commitsha=$GITHUB_SHA,committag=$GIT_TAG,commitmessage=$COMMIT_MSG,commitauthor='$GITHUB_ACTOR',release=$VERSION_NUMBER"
+sam package \
+  --template-file="$TEMPLATE_FILE" \
+  --output-template-file="$TEMPLATE_OUT_FILE" \
+  --s3-bucket="$ARTIFACT_BUCKET" \
+  --signing-profiles "${signing_profiles:-}"
 
-echo "Zipping the CloudFormation template"
-zip template.zip cf-template.yaml
+echo "::endgroup::"
+echo "::group::Gathering release metadata"
 
-METADATA_ARGS="repository=$GITHUB_REPOSITORY,commitsha=$GITHUB_SHA,committag=$GIT_TAG,commitmessage=$COMMIT_MSG,mergetime=$MERGE_TIME,skipcanary=$SKIP_CANARY_DEPLOYMENT,commitauthor='$GITHUB_ACTOR'"
-# Check if VERSION_NUMBER is set and append it to METADATA_ARGS
-if [ -n "$VERSION_NUMBER" ]; then
-  METADATA_ARGS="$METADATA_ARGS,release=$VERSION_NUMBER,codepipeline-artifact-revision-summary=$VERSION_NUMBER"
-fi
+[[ $COMMIT_MESSAGES =~ \[(skip canary|no canary|canary skip)\] ]] && skip_canary=1
 
-echo "Uploading zipped CloudFormation artifact to S3"
-aws s3 cp template.zip "s3://$ARTIFACT_BUCKET/template.zip" --metadata "$METADATA_ARGS"
+release_metadata=(
+  "commitsha=$GITHUB_SHA"                                                    # Head commit SHA
+  "committag=$(git describe --tags --first-parent --always)"                 # Head commit tag or short SHA
+  "commitmessage=$(echo "$HEAD_MESSAGE" | head -n 1 | cut -c1-50)"           # Shortened head commit subject
+  "mergetime=$(TZ=UTC0 git log -1 --format=%cd --date=format-local:"%F %T")" # Merge to main UTC timestamp
+  "commitauthor='$GITHUB_ACTOR'"
+  "repository=$GITHUB_REPOSITORY"
+  "skipcanary=${skip_canary:-0}"
+)
+
+[[ ${VERSION:-} ]] && release_metadata+=(
+  "codepipeline-artifact-revision-summary=$VERSION"
+  "release=$VERSION"
+)
+
+metadata=$(IFS="," && echo "${release_metadata[*]}")
+column -t -s= < <(tr "," "\n" <<< "$metadata")
+
+echo "::endgroup::"
+echo "::group::Writing Lambda provenance"
+
+for lambda in "${lambdas[@]}"; do
+  if uri=$(yq --exit-status ".Resources.${lambda}.Properties | .CodeUri // .ContentUri" "$TEMPLATE_OUT_FILE"); then
+    echo "❭ $lambda"
+    aws s3 cp "$uri" "$uri" --metadata "$metadata"
+  fi
+done
+
+echo "::endgroup::"
+echo "» Zipping CloudFormation template"
+zip template.zip "$TEMPLATE_OUT_FILE"
+
+echo "» Uploading artifact to S3"
+aws s3 cp template.zip "s3://$ARTIFACT_BUCKET/template.zip" --metadata "$metadata"

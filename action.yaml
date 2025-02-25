@@ -1,35 +1,39 @@
-name: Upload Lambdas
-description: Packages and uploads
+name: Upload SAM package
+description: Packages and uploads a SAM template to S3
 
 inputs:
   artifact-bucket-name:
     description: The name of the artifact S3 bucket
     required: true
   signing-profile-name:
-    description: The name of the Signing Profile
-    required: true
+    description: The name of the Signing Profile. This should be unset in dev environments
+    required: false
   working-directory:
     description: The working directory containing the SAM app
     required: false
   template-file:
-    description: The name and path of the CF template for the application. This defaults to template.yaml
+    description: The path to the application CloudFormation template relative to the working directory
     required: false
     default: template.yaml
   version-number:
     description: The version number of the application being deployed
+    deprecationMessage: Use the 'version' input instead
+    required: false
+  version:
+    description: The version of the application being deployed
     required: false
 
 runs:
   using: composite
   steps:
-    - name: Upload Lambdas to S3
+    - name: Upload SAM package
       working-directory: ${{ inputs.working-directory }}
       env:
-        ARTIFACT_BUCKET: ${{ inputs.artifact-bucket-name }}
-        SIGNING_PROFILE: ${{ inputs.signing-profile-name }}
+        VERSION: ${{ inputs.version || inputs.version-number }}
         TEMPLATE_FILE: ${{ inputs.template-file }}
-        COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
-        GITHUB_ACTOR: ${{ github.actor }}
-        VERSION_NUMBER: ${{ inputs.version-number }}
+        SIGNING_PROFILE: ${{ inputs.signing-profile-name }}
+        ARTIFACT_BUCKET: ${{ inputs.artifact-bucket-name }}
+        HEAD_MESSAGE: ${{ github.event.head_commit.message }}
+        COMMIT_MESSAGES: ${{ join(github.event.commits.*.message, ' | ') }}
       run: ${{ github.action_path }}/scripts/upload.sh
       shell: bash
