@@ -1,14 +1,22 @@
-#! /bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-set -eu
+: "${SIGNING_PROFILE:?}"
+: "${TEMPLATE_FILE:=template.yaml}"
 
-echo "Parsing resources to be signed"
-RESOURCES="$(yq '.Resources.* | select(has("Type") and .Type == "AWS::Serverless::Function" or .Type == "AWS::Serverless::LayerVersion") | path | .[1]' "$TEMPLATE_FILE" | xargs)"
-read -ra LIST <<< "$RESOURCES"
+echo "» Parsing Lambdas to be signed"
+
+mapfile -t lambdas < <(yq \
+  '.Resources[] | select(
+    .Type=="AWS::Serverless::Function" or
+    .Type=="AWS::Serverless::LayerVersion"
+  ) | key' "$TEMPLATE_FILE")
+
+echo "ℹ Found ${#lambdas[@]} Lambda(s) in the template"
 
 # Construct the signing-profiles argument list
 # e.g.: (HelloWorldFunction1="signing-profile-name" HelloWorldFunction2="signing-profile-name")
-PROFILES=("${LIST[@]/%/="$SIGNING_PROFILE"}")
+PROFILES=("${lambdas[@]/%/="$SIGNING_PROFILE"}")
 
 echo "Packaging SAM app"
 if [ "${#PROFILES[@]}" -eq 0 ]; then
