@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
 source scripts/utility.test.sh
 
+: "${SIGNING_PROFILE:-}"
+
 uri_regex="^s3:\/\/${ARTIFACT_BUCKET}\/${ARTIFACT_PREFIX:-}"
+
+function verify-object-signed() {
+  local key=$1
+  jq '.jobs[] select()' <<< "$signing_jobs"
+}
 
 function verify-lambda-uri() {
   local uri=$1
@@ -35,6 +41,11 @@ function get-lambda-names() {
 
 failed=false
 get-lambda-names
+
+if [[ ${SIGNING_PROFILE:-} ]]; then
+  aws_identity=$(aws sts get-caller-identity --query Arn --output text)
+  signing_jobs=$(aws signer list-signing-jobs --requested-by "$aws_identity" --max-items $((${#lambdas[@]} * 10)))
+fi
 
 verify-object-metadata "${ARTIFACT_PREFIX:+$ARTIFACT_PREFIX/}template.zip" template || failed=true
 
