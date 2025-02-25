@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+: "${ARTIFACT_BUCKET:?}"
 : "${SIGNING_PROFILE:?}"
+
 : "${TEMPLATE_FILE:=template.yaml}"
+: "${TEMPLATE_OUT_FILE:=cf-template.yaml}"
 
 echo "» Parsing Lambdas to be signed"
 
@@ -13,18 +16,15 @@ mapfile -t lambdas < <(yq \
   ) | key' "$TEMPLATE_FILE")
 
 echo "ℹ Found ${#lambdas[@]} Lambda(s) in the template"
+echo "::group::Packaging SAM app"
 
-# Construct the signing-profiles argument list
-# e.g.: (HelloWorldFunction1="signing-profile-name" HelloWorldFunction2="signing-profile-name")
-PROFILES=("${lambdas[@]/%/="$SIGNING_PROFILE"}")
+sam package \
+  --template-file="$TEMPLATE_FILE" \
+  --output-template-file="$TEMPLATE_OUT_FILE" \
+  --s3-bucket="$ARTIFACT_BUCKET" \
+  --signing-profiles "${lambdas[*]/%/=$SIGNING_PROFILE}"
 
-echo "Packaging SAM app"
-if [ "${#PROFILES[@]}" -eq 0 ]; then
-  echo "No resources that require signing found"
-  sam package --s3-bucket="$ARTIFACT_BUCKET" --template-file="$TEMPLATE_FILE" --output-template-file=cf-template.yaml
-else
-  sam package --s3-bucket="$ARTIFACT_BUCKET" --template-file="$TEMPLATE_FILE" --output-template-file=cf-template.yaml --signing-profiles "${PROFILES[*]}"
-fi
+echo "::endgroup::"
 
 # This only gets set if there is a tag on the current commit.
 GIT_TAG=$(git describe --tags --first-parent --always)
