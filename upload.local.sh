@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+: "${GITHUB_ACTOR:=$(whoami)}"
+: "${GITHUB_REPOSITORY:=upload-action-local}"
+
+default_bucket=upload-action-test-local
+aws sts get-caller-identity &> /dev/null || exit
+
+if ! [[ ${TEMPLATE_FILE:-} ]]; then
+  demo_app="$(dirname "${BASH_SOURCE[0]}")/../devplatform-demo-sam-app/sam-app2"
+  export TEMPLATE_FILE="$demo_app/.aws-sam/build/template.yaml"
+
+  if ! [[ -f $TEMPLATE_FILE ]]; then
+    echo "» Building demo sam app"
+    pushd "$demo_app" > /dev/null
+    sam build --cached --parallel
+    popd > /dev/null
+  fi
+fi
+
+if ! [[ ${ARTIFACT_BUCKET:-} ]]; then
+  export ARTIFACT_BUCKET=$default_bucket
+  aws s3 ls $ARTIFACT_BUCKET &> /dev/null || aws s3 mb "s3://$ARTIFACT_BUCKET"
+fi
+
+echo "ℹ Using template $TEMPLATE_FILE"
+echo "ℹ Using bucket $ARTIFACT_BUCKET"
+
+export GITHUB_ACTOR GITHUB_REPOSITORY
+scripts/upload.sh
