@@ -6,13 +6,15 @@ The action packages, signs the Lambda functions, and uploads the application to 
 
 It adds the following metadata to the S3 object:
 
-- committag - The tag of the git commit (if present), this falls back to a shortened commit has.
-- repository - The git repository where the file was loaded from.
-- commitmessage - The first 50 characters of the git commit message, trimmed to the following regex:
-  `tr -dc '[:alnum:]- '`
-- commitsha - The full git commitsha of the git commit.
-- mergetime - Time in UTC when git merge happened.
-- skipcanary - 0 or 1 for skipcanary.
+| Key             | Description                                                                                                                                                                                                |
+|-----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `commitsha`     | The full SHA of the head git commit                                                                                                                                                                        |
+| `committag`     | The tag of the head git commit, if present, otherwise this falls back to the short commit SHA                                                                                                              |
+| `commitmessage` | The first 50 characters of the first line (subject) of the head commit message                                                                                                                             |
+| `mergetime`     | The timestamp when the head commit was committed in the UTC timezone. For PRs this is effectively the merge time                                                                                           |
+| `commitauthor`  | The name of the person or app that initiated the workflow run                                                                                                                                              |
+| `repository`    | The name of the git repository where the workflow was initiated from. This will usually be the repository containing the SAM template being deployed                                                       |
+| `skipcanary`    | A flag (0 or 1) to indicate whether the canary deployment should be skipped in the pipeline. This is determined by searching for a special string in the commit messages included in a workflow push event |
 
 ## Action Inputs
 

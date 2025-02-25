@@ -2,16 +2,18 @@
 shopt -s nocasematch
 set -euo pipefail
 
-: "${COMMIT_MESSAGE:?}"
 : "${ARTIFACT_BUCKET:?}"
 : "${GITHUB_REPOSITORY:?}"
 : "${GITHUB_ACTOR:?}"
 
 : "${VERSION:-}"
 : "${SIGNING_PROFILE:-}"
+: "${COMMIT_MESSAGES:=}"
+: "${HEAD_MESSAGE:=$(git log -1 --format=%s)}"
+: "${GITHUB_SHA:=$(git rev-parse HEAD)}"
+
 : "${TEMPLATE_FILE:=template.yaml}"
 : "${TEMPLATE_OUT_FILE:=cf-template.yaml}"
-: "${GITHUB_SHA:=$(git rev-parse HEAD)}"
 
 echo "» Parsing Lambdas to be signed"
 
@@ -36,13 +38,13 @@ sam package \
 echo "::endgroup::"
 echo "::group::Gathering release metadata"
 
-[[ $COMMIT_MESSAGE =~ \[(skip canary|no canary|canary skip)\] ]] && skip_canary=1
+[[ $COMMIT_MESSAGES =~ \[(skip canary|no canary|canary skip)\] ]] && skip_canary=1
 
 release_metadata=(
-  "commitsha=$GITHUB_SHA"                                                                       # Head commit SHA
-  "committag=$(git describe --tags --first-parent --always)"                                    # Head commit tag or short SHA
-  "commitmessage=$(echo "$COMMIT_MESSAGE" | tr "\n" " " | tr -dc "[:alnum:]#:- " | cut -c1-50)" # Shortened head commit message
-  "mergetime=$(TZ=UTC0 git log -1 --format=%cd --date=format-local:"%F %T")"                    # Merge to main UTC timestamp
+  "commitsha=$GITHUB_SHA"                                                    # Head commit SHA
+  "committag=$(git describe --tags --first-parent --always)"                 # Head commit tag or short SHA
+  "commitmessage=$(echo "$HEAD_MESSAGE" | head -n 1 | cut -c1-50)"           # Shortened head commit subject
+  "mergetime=$(TZ=UTC0 git log -1 --format=%cd --date=format-local:"%F %T")" # Merge to main UTC timestamp
   "commitauthor='$GITHUB_ACTOR'"
   "repository=$GITHUB_REPOSITORY"
   "skipcanary=${skip_canary:-0}"

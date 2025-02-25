@@ -29,6 +29,7 @@ runs:
         TEMPLATE_FILE: ${{ inputs.template-file }}
         SIGNING_PROFILE: ${{ inputs.signing-profile-name }}
         ARTIFACT_BUCKET: ${{ inputs.artifact-bucket-name }}
-        COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        HEAD_MESSAGE: ${{ github.event.head_commit.message }}
+        COMMIT_MESSAGES: ${{ join(github.event.commits.*.message, ' | ') }}
       run: ${{ github.action_path }}/scripts/upload.sh
       shell: bash
