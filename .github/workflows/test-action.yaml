@@ -63,4 +63,5 @@ jobs:
           TEMPLATE_FILE: ${{ steps.upload-sam-app.outputs.template-out-file }}
           ARTIFACT_PREFIX: ${{ steps.get-branch-name.outputs.pretty-branch-name }}
           ARTIFACT_BUCKET: ${{ vars.ARTIFACT_SOURCE_BUCKET }}
+          SIGNING_PROFILE: ${{ vars.SIGNING_PROFILE_NAME }}
           VERSION: test-${{ github.sha }}
