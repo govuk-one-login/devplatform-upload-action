@@ -22,7 +22,11 @@ fi
 
 if ! [[ ${ARTIFACT_BUCKET:-} ]]; then
   export ARTIFACT_BUCKET=$default_bucket
-  aws s3 ls $ARTIFACT_BUCKET &> /dev/null || aws s3 mb "s3://$ARTIFACT_BUCKET"
+
+  if ! aws s3 ls $ARTIFACT_BUCKET &> /dev/null; then
+    aws s3 mb "s3://$ARTIFACT_BUCKET"
+    aws s3api put-bucket-versioning --bucket $ARTIFACT_BUCKET --versioning-configuration Status=Enabled
+  fi
 fi
 
 if $SIGN_CODE; then
