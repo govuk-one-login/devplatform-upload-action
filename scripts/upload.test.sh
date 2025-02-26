@@ -56,7 +56,7 @@ function verify-object-metadata() {
   local object_key=$1 name=${2:-} invalid_metadata=() metadata key expected actual
 
   echo "Verifying metadata for ${name:-$object_key}"
-  get-object-metadata "$object_key" || return 1
+  get-object-metadata || return 1
 
   for key in "${!expected_metadata[@]}"; do
     expected=${expected_metadata[$key]}
@@ -73,7 +73,7 @@ function verify-object-metadata() {
 function verify-lambda() {
   local name=$1 uri
   uri=$(yq ".Resources.${lambda}.Properties | .CodeUri // .ContentUri" "$TEMPLATE_FILE")
-  verify-object-metadata "${uri##*/}" "$name"
+  verify-object-metadata "${uri#s3://*/}" "$name"
 }
 
 expected_metadata=(
