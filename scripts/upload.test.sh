@@ -14,19 +14,24 @@ set -euo pipefail
 : "${TEMPLATE_FILE:=cf-template.yaml}"
 : "${RESULTS_FILE:=${GITHUB_STEP_SUMMARY:-results}}"
 
+rm -f "$RESULTS_FILE"
 declare -A expected_metadata
 
 function report-error() {
-  tee -a "$RESULTS_FILE"
-  failed=true
+  local heading=$1
+  {
+    echo "#### ❌ $heading"
+    echo '```'
+    cat
+    echo '```'
+  } | tee -a "$RESULTS_FILE"
 }
 
-function print-metadata-results() {
-  local name=$1
-  echo "#### ❌ Invalid metadata for \`$name\`"
-  echo '```'
-  column -ts $'\t' < <(invalid-metadata-entry "[Key]" "[Expected]" "[Actual]" && cat)
-  echo '```'
+function get-lambdas() {
+  yq '.Resources[] | select(
+        .Type=="AWS::Serverless::Function" or
+        .Type=="AWS::Serverless::LayerVersion"
+      ) | key' "$TEMPLATE_FILE"
 }
 
 function invalid-metadata-entry() {
@@ -35,14 +40,24 @@ function invalid-metadata-entry() {
   (IFS=$'\t' && echo "${entry[*]}")
 }
 
+function print-metadata-results() {
+  {
+    invalid-metadata-entry "[Key]" "[Expected]" "[Actual]"
+    IFS=$'\n' && echo "${invalid_metadata[*]}"
+  } | column -ts $'\t'
+}
+
 function get-object-metadata() {
-  local object_key=$1
-  aws s3api head-object --bucket "$ARTIFACT_BUCKET" --key "$object_key" --query Metadata
+  metadata=$(aws s3api head-object --bucket "$ARTIFACT_BUCKET" --key "$key" --query Metadata 2>&1) && return
+  report-error "Metadata could not be retrieved for \`${name:-$key}\`" <<< "$metadata"
+  return 1
 }
 
 function verify-object-metadata() {
-  local object_key=$1 invalid_metadata=() metadata key expected actual
-  metadata=$(get-object-metadata "$object_key")
+  local key=$1 name=${2:-} invalid_metadata=() metadata key expected actual
+
+  echo "Verifying metadata for ${name:-$key}"
+  get-object-metadata "$key" || return 1
 
   for key in "${!expected_metadata[@]}"; do
     expected=${expected_metadata[$key]}
@@ -51,9 +66,15 @@ function verify-object-metadata() {
   done
 
   if [[ ${#invalid_metadata[@]} -gt 0 ]]; then
-    print-metadata-results "$object_key" < <(IFS=$'\n' && echo "${invalid_metadata[*]}")
+    print-metadata-results | report-error "Invalid metadata for \`${name:-$key}\`"
     return 1
   fi
+}
+
+function verify-lambda() {
+  local name=$1 uri
+  uri=$(yq ".Resources.${lambda}.Properties | .CodeUri // .ContentUri" "$TEMPLATE_FILE")
+  verify-object-metadata "${uri##*/}" "$name"
 }
 
 expected_metadata=(
@@ -67,10 +88,13 @@ expected_metadata=(
 )
 
 failed=false
-rm -f "$RESULTS_FILE"
+lambdas=$(get-lambdas)
 
-metadata_results=$(verify-object-metadata template.zip) || report-error <<< "$metadata_results"
-metadata_results=$(verify-object-metadata template.zip) || report-error <<< "$metadata_results"
+verify-object-metadata template.zip || failed=true
+
+for lambda in $lambdas; do
+  verify-lambda "$lambda" || failed=true
+done
 
 $failed && exit 1
 echo "✅ All checks have passed"

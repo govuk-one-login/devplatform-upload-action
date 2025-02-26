@@ -6,7 +6,7 @@ set -euo pipefail
 : "${GITHUB_REPOSITORY:=upload-action-local}"
 
 default_bucket=upload-action-test-local
-aws sts get-caller-identity &> /dev/null || exit
+aws sts get-caller-identity > /dev/null || exit
 
 if ! [[ ${TEMPLATE_FILE:-} ]]; then
   demo_app="$(dirname "${BASH_SOURCE[0]}")/../devplatform-demo-sam-app/sam-app2"
