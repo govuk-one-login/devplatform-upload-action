@@ -5,6 +5,7 @@ set -euo pipefail
 : "${GITHUB_REPOSITORY:?}"
 : "${GITHUB_ACTOR:?}"
 
+: "${VERSION:=null}"
 : "${SKIP_CANARY:=0}"
 : "${GITHUB_SHA:=$(git rev-parse HEAD)}"
 : "${GIT_TAG:=$(git describe --tags --first-parent --always)}"
@@ -85,6 +86,8 @@ expected_metadata=(
   [commitauthor]=$GITHUB_ACTOR
   [repository]=$GITHUB_REPOSITORY
   [skipcanary]=$SKIP_CANARY
+  [release]=$VERSION
+  ["codepipeline-artifact-revision-summary"]=$VERSION
 )
 
 failed=false
