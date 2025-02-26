@@ -9,6 +9,7 @@ export default [
         name: "yaml",
         rules: {
             "yml/file-extension": "error",
+            "yml/no-empty-mapping-value": "off",
         }
     }
 ];

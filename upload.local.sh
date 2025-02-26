@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+: "${SIGN_CODE:=false}"
 : "${GITHUB_ACTOR:=$(whoami)}"
 : "${GITHUB_REPOSITORY:=upload-action-local}"
 
@@ -22,6 +23,11 @@ fi
 if ! [[ ${ARTIFACT_BUCKET:-} ]]; then
   export ARTIFACT_BUCKET=$default_bucket
   aws s3 ls $ARTIFACT_BUCKET &> /dev/null || aws s3 mb "s3://$ARTIFACT_BUCKET"
+fi
+
+if $SIGN_CODE; then
+  SIGNING_PROFILE=$(aws signer list-signing-profiles --query 'profiles[0].profileName' --output text)
+  export SIGNING_PROFILE
 fi
 
 echo "ℹ Using template $TEMPLATE_FILE"
