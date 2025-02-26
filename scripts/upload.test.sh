@@ -35,39 +35,37 @@ function get-lambdas() {
       ) | key' "$TEMPLATE_FILE"
 }
 
-function invalid-metadata-entry() {
-  local key=$1 expected=$2 actual=$3 entry
-  entry=("$key" "$expected" "$actual")
-  (IFS=$'\t' && echo "${entry[*]}")
+function metadata-entry() {
+  local IFS=$'\t' && echo "$*"
 }
 
 function print-metadata-results() {
   {
-    invalid-metadata-entry "[Key]" "[Expected]" "[Actual]"
+    metadata-entry "[Key]" "[Expected]" "[Actual]"
     IFS=$'\n' && echo "${invalid_metadata[*]}"
   } | column -ts $'\t'
 }
 
 function get-object-metadata() {
-  metadata=$(aws s3api head-object --bucket "$ARTIFACT_BUCKET" --key "$key" --query Metadata 2>&1) && return
-  report-error "Metadata could not be retrieved for \`${name:-$key}\`" <<< "$metadata"
+  metadata=$(aws s3api head-object --bucket "$ARTIFACT_BUCKET" --key "$object_key" --query Metadata 2>&1) && return
+  report-error "Metadata could not be retrieved for \`$object_key${name:+ ($name)}\`" <<< "$metadata"
   return 1
 }
 
 function verify-object-metadata() {
-  local key=$1 name=${2:-} invalid_metadata=() metadata key expected actual
+  local object_key=$1 name=${2:-} invalid_metadata=() metadata key expected actual
 
-  echo "Verifying metadata for ${name:-$key}"
-  get-object-metadata "$key" || return 1
+  echo "Verifying metadata for ${name:-$object_key}"
+  get-object-metadata "$object_key" || return 1
 
   for key in "${!expected_metadata[@]}"; do
     expected=${expected_metadata[$key]}
     actual=$(jq --raw-output --arg key "$key" '.[$key]' <<< "$metadata")
-    [[ $expected == "$actual" ]] || invalid_metadata+=("$(invalid-metadata-entry "$key" "$expected" "$actual")")
+    [[ $expected == "$actual" ]] || invalid_metadata+=("$(metadata-entry "$key" "$expected" "$actual")")
   done
 
   if [[ ${#invalid_metadata[@]} -gt 0 ]]; then
-    print-metadata-results | report-error "Invalid metadata for \`${name:-$key}\`"
+    print-metadata-results | report-error "Invalid metadata for \`$object_key${name:+ ($name)}\`"
     return 1
   fi
 }

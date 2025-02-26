@@ -27,6 +27,7 @@ fi
 
 if $SIGN_CODE; then
   SIGNING_PROFILE=$(aws signer list-signing-profiles --query 'profiles[0].profileName' --output text)
+  echo "ℹ Using signing profile $SIGNING_PROFILE"
   export SIGNING_PROFILE
 fi
 
