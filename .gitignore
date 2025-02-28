@@ -326,3 +326,5 @@ node_modules
 
 venv
 .venv/
+
+results
