@@ -7,6 +7,7 @@ set -euo pipefail
 
 : "${VERSION:=null}"
 : "${SKIP_CANARY:=0}"
+: "${SIGNING_PROFILE:-}"
 : "${GITHUB_SHA:=$(git rev-parse HEAD)}"
 : "${GIT_TAG:=$(git describe --tags --first-parent --always)}"
 : "${COMMIT_MESSAGE:=$(git log -1 --format=%s | head -n 1 | cut -c1-50)}"
@@ -70,6 +71,11 @@ function verify-object-metadata() {
   fi
 }
 
+function verify-object-signed() {
+  local key=$1
+  jq '.jobs[] select()' <<< "$signing_jobs"
+}
+
 function verify-lambda() {
   local name=$1 uri
   uri=$(yq ".Resources.${lambda}.Properties | .CodeUri // .ContentUri" "$TEMPLATE_FILE")
@@ -89,11 +95,16 @@ expected_metadata=(
 )
 
 failed=false
-lambdas=$(get-lambdas)
+mapfile -t lambdas < <(get-lambdas)
+
+if [[ ${SIGNING_PROFILE:-} ]]; then
+  aws_identity=$(aws sts get-caller-aws_identity --query Arn --output text)
+  signing_jobs=$(aws signer list-signing-jobs --requested-by "$aws_identity" --max-items $((${#lambdas[@]} * 10)))
+fi
 
 verify-object-metadata template.zip || failed=true
 
-for lambda in $lambdas; do
+for lambda in "${lambdas[@]}"; do
   verify-lambda "$lambda" || failed=true
 done
 
