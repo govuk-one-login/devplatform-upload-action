@@ -5,6 +5,9 @@ inputs:
   artifact-bucket-name:
     description: The name of the artifact S3 bucket
     required: true
+  artifact-bucket-prefix:
+    description: The path at which the artifact should be placed within the S3 bucket
+    required: false
   signing-profile-name:
     description: The name of the Signing Profile. This should be unset in dev environments
     required: false
@@ -33,6 +36,7 @@ runs:
         TEMPLATE_FILE: ${{ inputs.template-file }}
         SIGNING_PROFILE: ${{ inputs.signing-profile-name }}
         ARTIFACT_BUCKET: ${{ inputs.artifact-bucket-name }}
+        ARTIFACT_PREFIX: ${{ inputs.artifact-bucket-prefix }}
         HEAD_MESSAGE: ${{ github.event.head_commit.message }}
         COMMIT_MESSAGES: ${{ join(github.event.commits.*.message, ' | ') }}
       run: ${{ github.action_path }}/scripts/upload.sh

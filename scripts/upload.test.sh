@@ -5,6 +5,8 @@ set -euo pipefail
 : "${GITHUB_REPOSITORY:?}"
 : "${GITHUB_ACTOR:?}"
 
+: "${ARTIFACT_PREFIX:-}"
+
 : "${VERSION:=}"
 : "${SKIP_CANARY:=0}"
 : "${GITHUB_SHA:=$(git rev-parse HEAD)}"
@@ -123,7 +125,7 @@ function get-lambda-names() {
 failed=false
 get-lambda-names
 
-verify-object-metadata template.zip || failed=true
+verify-object-metadata "${ARTIFACT_PREFIX:+$ARTIFACT_PREFIX/}template.zip" template || failed=true
 
 for lambda in "${lambdas[@]}"; do
   verify-lambda "$lambda" || failed=true

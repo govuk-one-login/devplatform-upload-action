@@ -2,11 +2,12 @@
 set -euo pipefail
 
 : "${SIGN_CODE:=false}"
+: "${NO_PREFIX:=false}"
 : "${GITHUB_ACTOR:=$(whoami)}"
 : "${GITHUB_REPOSITORY:=upload-action-local}"
 
 default_bucket=upload-action-test-local
-aws sts get-caller-identity > /dev/null || exit
+[[ $(aws sts get-caller-identity --query Arn --output text) =~ \/([^\/\.]+)\. ]] && user="${BASH_REMATCH[1]}" || exit
 
 if ! [[ ${TEMPLATE_FILE:-} ]]; then
   demo_app="$(dirname "${BASH_SOURCE[0]}")/../devplatform-demo-sam-app/sam-app2"
@@ -35,8 +36,10 @@ if $SIGN_CODE; then
   export SIGNING_PROFILE
 fi
 
-echo "ℹ Using template $TEMPLATE_FILE"
-echo "ℹ Using bucket $ARTIFACT_BUCKET"
-
 export GITHUB_ACTOR GITHUB_REPOSITORY
+$NO_PREFIX || export ARTIFACT_PREFIX=${ARTIFACT_PREFIX:-$user}
+
+echo "ℹ Using template $TEMPLATE_FILE"
+echo "ℹ Using bucket $ARTIFACT_BUCKET/${ARTIFACT_PREFIX:-}"
+
 scripts/upload.sh
