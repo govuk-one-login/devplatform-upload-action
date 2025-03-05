@@ -2,6 +2,13 @@ name: Upload SAM package
 description: Packages and uploads a SAM template to S3
 
 inputs:
+  aws-role-arn:
+    description: The ARN of the AWS role to assume
+    required: false
+  aws-region:
+    description: The AWS region to use
+    required: false
+    default: eu-west-2
   artifact-bucket-name:
     description: The name of the artifact S3 bucket
     required: true
@@ -29,6 +36,13 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Assume AWS Role
+      if: ${{ inputs.aws-role-arn != null }}
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ inputs.aws-role-arn }}
+        aws-region: ${{ inputs.aws-region }}
+
     - name: Upload SAM package
       working-directory: ${{ inputs.working-directory }}
       env:
