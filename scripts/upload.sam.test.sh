@@ -53,5 +53,7 @@ for lambda in "${lambdas[@]}"; do
   verify-lambda "$lambda" || failed=true
 done
 
+cat "$GITHUB_EVENT_PATH"
+
 $failed && exit 1
 echo "✅ All checks have passed"
