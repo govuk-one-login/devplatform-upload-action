@@ -30,7 +30,7 @@ echo "::group::Packaging SAM app"
 
 [[ ${ARTIFACT_PREFIX:-} ]] && s3_prefix=${ARTIFACT_PREFIX%%+(/)}/
 [[ ${SIGNING_PROFILE:-} ]] && signing_profiles=${lambdas[*]/%/=$SIGNING_PROFILE}
-[[ ${signing_profiles:-} ]] || echo "⚠ Code will not be signed"
+[[ ${signing_profiles:-} ]] || echo "::notice title=Signing profile not set::Code will not be signed"
 
 sam package \
   --template-file="$TEMPLATE_FILE" \
