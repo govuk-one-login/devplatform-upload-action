@@ -19,6 +19,7 @@ set -euo pipefail
 
 rm -f "$RESULTS_FILE"
 declare -A expected_metadata
+uri_regex="^s3:\/\/${ARTIFACT_BUCKET}\/${ARTIFACT_PREFIX:-}"
 
 expected_metadata=(
   [commitsha]=$GITHUB_SHA
@@ -101,11 +102,18 @@ function verify-object-metadata() {
   validate-results "Invalid metadata"
 }
 
+function verify-lambda-uri() {
+  local uri=$1
+  echo "» Verifying URI for $name"
+  [[ $uri =~ $uri_regex ]] || report-error "URI doesn't match \`/$uri_regex/\`" <<< "$uri"
+}
+
 function verify-lambda() {
   local name=$1 uri
   uri=$(yq --exit-status ".Resources.${name}.Properties | .CodeUri // .ContentUri" "$TEMPLATE_FILE" 2>&1) ||
     report-error "Could not retrieve URI" <<< "$uri" || return 1
 
+  verify-lambda-uri "$uri" || return 1
   verify-object-metadata "${uri#s3://*/}"
 }
 
