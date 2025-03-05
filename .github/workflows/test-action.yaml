@@ -1,0 +1,66 @@
+name: Test upload action
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+concurrency:
+  group: test-upload-action-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  run-tests:
+    name: Test upload action
+    environment: development
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull demo SAM app
+        uses: actions/checkout@v4
+        with:
+          repository: govuk-one-login/devplatform-demo-sam-app
+          token: ${{ secrets.LEAD_ENGINEER_GITHUB_TOKEN }}
+          path: demo
+
+      - name: Build demo SAM app
+        uses: govuk-one-login/github-actions/sam/build-application@5480cced560e896dea12c47ea33e548a4d093e65
+        with:
+          template: demo/sam-app2/template.yaml
+          source-dir: demo/sam-app2/HelloWorldFunction
+
+      - name: Trim branch name
+        uses: govuk-one-login/github-actions/beautify-branch-name@5480cced560e896dea12c47ea33e548a4d093e65
+        id: get-branch-name
+        with:
+          length-limit: 63
+          verbose: false
+
+      - name: Pull action
+        uses: actions/checkout@v4
+        with:
+          path: upload-action
+
+      - name: Upload SAM app
+        uses: ./upload-action
+        id: upload-sam-app
+        with:
+          aws-role-arn: ${{ vars.AWS_ROLE_ARN }}
+          artifact-bucket-name: ${{ vars.ARTIFACT_SOURCE_BUCKET }}
+          artifact-bucket-prefix: ${{ steps.get-branch-name.outputs.pretty-branch-name }}
+          signing-profile-name: ${{ vars.SIGNING_PROFILE_NAME }}
+          template-file: ../.aws-sam/build/template.yaml
+          working-directory: upload-action
+          version: test-${{ github.sha }}
+
+      - name: Check uploaded artifact
+        working-directory: upload-action
+        run: scripts/upload.test.sh
+        shell: bash
+        env:
+          TEMPLATE_FILE: ${{ steps.upload-sam-app.outputs.template-out-file }}
+          ARTIFACT_PREFIX: ${{ steps.get-branch-name.outputs.pretty-branch-name }}
+          ARTIFACT_BUCKET: ${{ vars.ARTIFACT_SOURCE_BUCKET }}
+          VERSION: test-${{ github.sha }}

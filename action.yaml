@@ -25,6 +25,10 @@ inputs:
     description: The path to the application CloudFormation template relative to the working directory
     required: false
     default: template.yaml
+  template-out-file:
+    description: The path where the processed template file should be placed
+    required: false
+    default: cf-template.yaml
   version-number:
     description: The version number of the application being deployed
     deprecationMessage: Use the 'version' input instead
@@ -32,6 +36,11 @@ inputs:
   version:
     description: The version of the application being deployed
     required: false
+
+outputs:
+  template-out-file:
+    description: The path where the processed template file has been placed
+    value: ${{ inputs.template-out-file }}
 
 runs:
   using: composite
@@ -48,6 +57,7 @@ runs:
       env:
         VERSION: ${{ inputs.version || inputs.version-number }}
         TEMPLATE_FILE: ${{ inputs.template-file }}
+        TEMPLATE_OUT_FILE: ${{ inputs.template-out-file }}
         SIGNING_PROFILE: ${{ inputs.signing-profile-name }}
         ARTIFACT_BUCKET: ${{ inputs.artifact-bucket-name }}
         ARTIFACT_PREFIX: ${{ inputs.artifact-bucket-prefix }}
