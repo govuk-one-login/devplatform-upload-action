@@ -56,7 +56,7 @@ release_metadata=(
 )
 
 metadata=$(IFS="," && echo "${release_metadata[*]}")
-column -t -s= < <(tr "," "\n" <<< "$metadata")
+column -ts= < <(tr "," "\n" <<< "$metadata")
 
 echo "::endgroup::"
 echo "::group::Writing Lambda provenance"
