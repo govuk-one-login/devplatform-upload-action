@@ -68,18 +68,20 @@ function add-invalid-result() {
 }
 
 function expand-invalid-results() {
-  invalid-result Key Expected Actual
-  invalid-result - - -
   local IFS=$'\n' && echo "${invalid_results[*]}"
 }
 
+function write-invalid-results() {
+  write-error "$@" <(invalid-result Key Expected Actual) <(invalid-result - - -) -
+}
+
 function print-invalid-results() {
-  sed "s/||/| |/g" | column -ts "|" | print-error "$@"
+  sed "s/||/| |/g" | cat <(invalid-result "[Key]" "[Expected]" "[Actual]") - | column -ts "|" | print-error "$@"
 }
 
 function validate-results() {
   [[ ${#invalid_results[@]} -eq 0 ]] ||
-    expand-invalid-results | tee >(write-error "$@") | print-invalid-results "$@"
+    expand-invalid-results | tee >(write-invalid-results "$@") | print-invalid-results "$@"
 }
 
 function get-object-metadata() {
