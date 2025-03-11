@@ -2,9 +2,19 @@ name: Upload SAM package
 description: Packages and uploads a SAM template to S3
 
 inputs:
+  aws-role-arn:
+    description: The ARN of the AWS role to assume
+    required: false
+  aws-region:
+    description: The AWS region to use
+    required: false
+    default: eu-west-2
   artifact-bucket-name:
     description: The name of the artifact S3 bucket
     required: true
+  artifact-bucket-prefix:
+    description: The path at which the artifact should be placed within the S3 bucket
+    required: false
   signing-profile-name:
     description: The name of the Signing Profile. This should be unset in dev environments
     required: false
@@ -15,6 +25,10 @@ inputs:
     description: The path to the application CloudFormation template relative to the working directory
     required: false
     default: template.yaml
+  template-out-file:
+    description: The path where the processed template file should be placed
+    required: false
+    default: cf-template.yaml
   version-number:
     description: The version number of the application being deployed
     deprecationMessage: Use the 'version' input instead
@@ -23,16 +37,30 @@ inputs:
     description: The version of the application being deployed
     required: false
 
+outputs:
+  template-out-file:
+    description: The path where the processed template file has been placed
+    value: ${{ inputs.template-out-file }}
+
 runs:
   using: composite
   steps:
+    - name: Assume AWS Role
+      if: ${{ inputs.aws-role-arn != null }}
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ inputs.aws-role-arn }}
+        aws-region: ${{ inputs.aws-region }}
+
     - name: Upload SAM package
       working-directory: ${{ inputs.working-directory }}
       env:
         VERSION: ${{ inputs.version || inputs.version-number }}
         TEMPLATE_FILE: ${{ inputs.template-file }}
+        TEMPLATE_OUT_FILE: ${{ inputs.template-out-file }}
         SIGNING_PROFILE: ${{ inputs.signing-profile-name }}
         ARTIFACT_BUCKET: ${{ inputs.artifact-bucket-name }}
+        ARTIFACT_PREFIX: ${{ inputs.artifact-bucket-prefix }}
         HEAD_MESSAGE: ${{ github.event.head_commit.message }}
         COMMIT_MESSAGES: ${{ join(github.event.commits.*.message, ' | ') }}
       run: ${{ github.action_path }}/scripts/upload.sh

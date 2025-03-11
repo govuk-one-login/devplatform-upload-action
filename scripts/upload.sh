@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-shopt -s nocasematch
+shopt -s extglob nocasematch
 set -euo pipefail
 
 : "${ARTIFACT_BUCKET:?}"
@@ -8,6 +8,8 @@ set -euo pipefail
 
 : "${VERSION:-}"
 : "${SIGNING_PROFILE:-}"
+: "${ARTIFACT_PREFIX:-}"
+
 : "${COMMIT_MESSAGES:=}"
 : "${HEAD_MESSAGE:=$(git log -1 --format=%s)}"
 : "${GITHUB_SHA:=$(git rev-parse HEAD)}"
@@ -26,13 +28,15 @@ mapfile -t lambdas < <(yq \
 echo "ℹ Found ${#lambdas[@]} Lambda(s) in the template"
 echo "::group::Packaging SAM app"
 
+[[ ${ARTIFACT_PREFIX:-} ]] && s3_prefix=${ARTIFACT_PREFIX%%+(/)}/
 [[ ${SIGNING_PROFILE:-} ]] && signing_profiles=${lambdas[*]/%/=$SIGNING_PROFILE}
-[[ ${signing_profiles:-} ]] || echo "⚠ Code will not be signed"
+[[ ${signing_profiles:-} ]] || echo "::notice title=Signing profile not set::Code will not be signed"
 
 sam package \
   --template-file="$TEMPLATE_FILE" \
   --output-template-file="$TEMPLATE_OUT_FILE" \
   --s3-bucket="$ARTIFACT_BUCKET" \
+  --s3-prefix "${s3_prefix:+${s3_prefix%/}}" \
   --signing-profiles "${signing_profiles:-}"
 
 echo "::endgroup::"
@@ -56,7 +60,7 @@ release_metadata=(
 )
 
 metadata=$(IFS="," && echo "${release_metadata[*]}")
-column -t -s= < <(tr "," "\n" <<< "$metadata")
+column -ts= < <(tr "," "\n" <<< "$metadata")
 
 echo "::endgroup::"
 echo "::group::Writing Lambda provenance"
@@ -73,4 +77,4 @@ echo "» Zipping CloudFormation template"
 zip template.zip "$TEMPLATE_OUT_FILE"
 
 echo "» Uploading artifact to S3"
-aws s3 cp template.zip "s3://$ARTIFACT_BUCKET/template.zip" --metadata "$metadata"
+aws s3 cp template.zip "s3://$ARTIFACT_BUCKET/${s3_prefix:-}template.zip" --metadata "$metadata"
