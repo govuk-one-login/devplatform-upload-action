@@ -9,6 +9,7 @@ set -euo pipefail
 
 : "${VERSION:=}"
 : "${SKIP_CANARY:=0}"
+: "${CLOSE_CIRCUIT_BREAKER:=0}"
 : "${GITHUB_SHA:=$(git rev-parse HEAD)}"
 : "${GIT_TAG:=$(git describe --tags --first-parent --always)}"
 : "${COMMIT_MESSAGE:=$(git log -1 --format=%s | head -n 1 | cut -c1-50)}"
@@ -31,6 +32,7 @@ expected_metadata=(
   [skipcanary]=$SKIP_CANARY
   [release]=$VERSION
   ["codepipeline-artifact-revision-summary"]=$VERSION
+  [closecircuitbreaker]=$CLOSE_CIRCUIT_BREAKER
 )
 
 function format-error() {

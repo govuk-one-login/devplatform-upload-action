@@ -43,6 +43,7 @@ echo "::endgroup::"
 echo "::group::Gathering release metadata"
 
 [[ $COMMIT_MESSAGES =~ \[(skip canary|no canary|canary skip)\] ]] && skip_canary=1
+[[ $COMMIT_MESSAGES =~ \[(close circuit breaker|end circuit breaker)\] ]] && close_circuit_breaker=1
 
 release_metadata=(
   "commitsha=$GITHUB_SHA"                                                    # Head commit SHA
@@ -52,6 +53,7 @@ release_metadata=(
   "commitauthor='$GITHUB_ACTOR'"
   "repository=$GITHUB_REPOSITORY"
   "skipcanary=${skip_canary:-0}"
+  "closecircuitbreaker=${close_circuit_breaker:-0}"
 )
 
 [[ ${VERSION:-} ]] && release_metadata+=(
