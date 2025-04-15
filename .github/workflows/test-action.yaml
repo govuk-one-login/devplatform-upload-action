@@ -22,7 +22,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: govuk-one-login/devplatform-demo-sam-app
-          token: ${{ secrets.LEAD_ENGINEER_GITHUB_TOKEN }}
           path: demo
 
       - name: Build demo SAM app
