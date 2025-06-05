@@ -49,7 +49,7 @@ jobs:
           aws-role-arn: ${{ vars.AWS_ROLE_ARN }}
           artifact-bucket-name: ${{ vars.ARTIFACT_SOURCE_BUCKET }}
           artifact-bucket-prefix: ${{ steps.get-branch-name.outputs.pretty-branch-name }}
-          signing-profile-name: ${{ vars.SIGNING_PROFILE_NAME }}
+#          signing-profile-name: ${{ vars.SIGNING_PROFILE_NAME }}
           template-file: ../.aws-sam/build/template.yaml
           working-directory: upload-action
           version: test-${{ github.sha }}
@@ -62,4 +62,5 @@ jobs:
           TEMPLATE_FILE: ${{ steps.upload-sam-app.outputs.template-out-file }}
           ARTIFACT_PREFIX: ${{ steps.get-branch-name.outputs.pretty-branch-name }}
           ARTIFACT_BUCKET: ${{ vars.ARTIFACT_SOURCE_BUCKET }}
-          VERSION: test-${{ github.sha }}
+#          SIGNING_PROFILE: ${{ vars.SIGNING_PROFILE_NAME }}
+#          VERSION: test-${{ github.sha }}

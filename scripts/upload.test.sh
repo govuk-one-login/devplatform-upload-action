@@ -6,6 +6,7 @@ set -euo pipefail
 : "${GITHUB_ACTOR:?}"
 
 : "${ARTIFACT_PREFIX:-}"
+: "${SIGNING_PROFILE:-}"
 
 : "${VERSION:=}"
 : "${SKIP_CANARY:=0}"
@@ -70,18 +71,20 @@ function add-invalid-result() {
 }
 
 function expand-invalid-results() {
-  invalid-result Key Expected Actual
-  invalid-result - - -
   local IFS=$'\n' && echo "${invalid_results[*]}"
 }
 
+function write-invalid-results() {
+  write-error "$@" <(invalid-result Key Expected Actual) <(invalid-result - - -) -
+}
+
 function print-invalid-results() {
-  sed "s/||/| |/g" | column -ts "|" | print-error "$@"
+  sed "s/||/| |/g" | cat <(invalid-result "[Key]" "[Expected]" "[Actual]") - | column -ts "|" | print-error "$@"
 }
 
 function validate-results() {
   [[ ${#invalid_results[@]} -eq 0 ]] ||
-    expand-invalid-results | tee >(write-error "$@") | print-invalid-results "$@"
+    expand-invalid-results | tee >(write-invalid-results "$@") | print-invalid-results "$@"
 }
 
 function get-object-metadata() {
@@ -102,6 +105,11 @@ function verify-object-metadata() {
   done
 
   validate-results "Invalid metadata"
+}
+
+function verify-object-signed() {
+  local key=$1
+  jq '.jobs[] select()' <<< "$signing_jobs"
 }
 
 function verify-lambda-uri() {
@@ -135,11 +143,18 @@ function get-lambda-names() {
 failed=false
 get-lambda-names
 
+if [[ ${SIGNING_PROFILE:-} ]]; then
+  aws_identity=$(aws sts get-caller-identity --query Arn --output text)
+  signing_jobs=$(aws signer list-signing-jobs --requested-by "$aws_identity" --max-items $((${#lambdas[@]} * 10)))
+fi
+
 verify-object-metadata "${ARTIFACT_PREFIX:+$ARTIFACT_PREFIX/}template.zip" template || failed=true
 
 for lambda in "${lambdas[@]}"; do
   verify-lambda "$lambda" || failed=true
 done
+
+cat "$GITHUB_EVENT_PATH"
 
 $failed && exit 1
 echo "✅ All checks have passed"
