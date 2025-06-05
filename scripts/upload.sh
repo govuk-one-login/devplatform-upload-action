@@ -48,7 +48,7 @@ echo "::group::Gathering release metadata"
 release_metadata=(
   "commitsha=$GITHUB_SHA"                                                    # Head commit SHA
   "committag=$(git describe --tags --first-parent --always)"                 # Head commit tag or short SHA
-  "commitmessage=$(echo "$HEAD_MESSAGE" | head -n 1 | cut -c1-50)"           # Shortened head commit subject
+  "commitmessage='$(echo "$HEAD_MESSAGE" | head -n 1 | cut -c1-50)'"         # Shortened head commit subject
   "mergetime=$(TZ=UTC0 git log -1 --format=%cd --date=format-local:"%F %T")" # Merge to main UTC timestamp
   "commitauthor='$GITHUB_ACTOR'"
   "repository=$GITHUB_REPOSITORY"
