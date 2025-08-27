@@ -9,6 +9,7 @@ set -euo pipefail
 : "${VERSION:-}"
 : "${SIGNING_PROFILE:-}"
 : "${ARTIFACT_PREFIX:-}"
+: "${SYNTHETICS_DIRECTORY:-}"
 
 : "${COMMIT_MESSAGES:=}"
 : "${HEAD_MESSAGE:=$(git log -1 --format=%s)}"
@@ -75,6 +76,35 @@ for lambda in "${lambdas[@]}"; do
 done
 
 echo "::endgroup::"
+
+if [ -n "${SYNTHETICS_DIRECTORY}" ]; then
+  echo "::group::Uploading Synthetic Canaries"
+  echo "» Parsing Synthetic Canaries to be uploaded"
+
+  mapfile -t synthetic_canaries < <(yq \
+    '.Resources[] | select(
+      .Type=="AWS::Synthetics::Canary"
+    ) | key' "$TEMPLATE_OUT_FILE")
+
+  echo "ℹ Found ${#synthetic_canaries[@]} Synthetic Canary(ies) in the template"
+
+  for synhtetic_canary in "${synthetic_canaries[@]}"; do
+    if s3_key=$(yq --exit-status ".Resources.${synhtetic_canary}.Properties.Code.S3Key" "$TEMPLATE_OUT_FILE"); then
+      echo "❭ $synhtetic_canary"
+      version_id=$(aws s3api put-object \
+        --bucket "$ARTIFACT_BUCKET" \
+        --key "$s3_key" \
+        --body "$SYNTHETICS_DIRECTORY"/"$s3_key" \
+        --metadata "$metadata" \
+        --query VersionId)
+
+      yq -i ".Resources.${synhtetic_canary}.Properties.Code.S3ObjectVersion = $version_id" "$TEMPLATE_OUT_FILE"
+    fi
+  done
+
+  echo "::endgroup::"
+fi
+
 echo "» Zipping CloudFormation template"
 zip template.zip "$TEMPLATE_OUT_FILE"
 
