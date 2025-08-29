@@ -36,6 +36,9 @@ inputs:
   version:
     description: The version of the application being deployed
     required: false
+  synthetics-directory:
+    description: The path to directory where the built synthetics code is stored
+    required: false
 
 outputs:
   template-out-file:
@@ -61,6 +64,7 @@ runs:
         SIGNING_PROFILE: ${{ inputs.signing-profile-name }}
         ARTIFACT_BUCKET: ${{ inputs.artifact-bucket-name }}
         ARTIFACT_PREFIX: ${{ inputs.artifact-bucket-prefix }}
+        SYNTHETICS_DIRECTORY: ${{ inputs.synthetics-directory }}
         HEAD_MESSAGE: ${{ github.event.head_commit.message }}
         COMMIT_MESSAGES: ${{ join(github.event.commits.*.message, ' | ') }}
       run: ${{ github.action_path }}/scripts/upload.sh
