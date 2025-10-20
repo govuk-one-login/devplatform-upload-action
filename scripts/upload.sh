@@ -2,6 +2,17 @@
 shopt -s extglob nocasematch
 set -euo pipefail
 
+# sanitize values for aws s3 --metadata "k=v,k2=v2" (no commas/newlines/tabs/CRs)
+sanitize() {
+  local s
+  s=$1
+  s=${s//$'\r'/ }   # CR
+  s=${s//$'\n'/ }   # LF
+  s=${s//$'\t'/ }   # TAB
+  s=${s//,/ }       # commas are separators in --metadata
+  printf '%s' "$s"
+}
+
 : "${ARTIFACT_BUCKET:?}"
 : "${GITHUB_REPOSITORY:?}"
 : "${GITHUB_ACTOR:?}"
@@ -49,17 +60,17 @@ echo "::group::Gathering release metadata"
 release_metadata=(
   "commitsha=$GITHUB_SHA"                                                    # Head commit SHA
   "committag=$(git describe --tags --first-parent --always)"                 # Head commit tag or short SHA
-  "commitmessage='$(echo "$HEAD_MESSAGE" | head -n 1 | cut -c1-50)'"         # Shortened head commit subject
-  "mergetime=$(TZ=UTC0 git log -1 --format=%cd --date=format-local:"%F %T")" # Merge to main UTC timestamp
-  "commitauthor='$GITHUB_ACTOR'"
-  "repository=$GITHUB_REPOSITORY"
+  "commitmessage=$(sanitize "$(echo "$HEAD_MESSAGE" | head -n 1 | cut -c1-50)")"         # Shortened head commit subject
+  "mergetime=$(sanitize "$(TZ=UTC0 git log -1 --format=%cd --date=format-local:"%F %T")")" # Merge to main UTC timestamp
+  "commitauthor=$(sanitize "$GITHUB_ACTOR")"
+  "repository=$(sanitize "$GITHUB_REPOSITORY")"
   "skipcanary=${skip_canary:-0}"
   "closecircuitbreaker=${close_circuit_breaker:-0}"
 )
 
 [[ ${VERSION:-} ]] && release_metadata+=(
-  "codepipeline-artifact-revision-summary=$VERSION"
-  "release=$VERSION"
+  "codepipeline-artifact-revision-summary=$(sanitize "$VERSION")"
+  "release=$(sanitize "$VERSION")"
 )
 
 metadata=$(IFS="," && echo "${release_metadata[*]}")
@@ -96,9 +107,10 @@ if [ -n "${SYNTHETICS_DIRECTORY}" ]; then
         --key "$s3_key" \
         --body "$SYNTHETICS_DIRECTORY"/"$s3_key" \
         --metadata "$metadata" \
-        --query VersionId)
+        --query VersionId \
+        --output text)
 
-      yq -i ".Resources.${synhtetic_canary}.Properties.Code.S3ObjectVersion = $version_id" "$TEMPLATE_OUT_FILE"
+      yq -i ".Resources.${synhtetic_canary}.Properties.Code.S3ObjectVersion = \"$version_id\"" "$TEMPLATE_OUT_FILE"
     fi
   done
 
