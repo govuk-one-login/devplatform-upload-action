@@ -2,8 +2,8 @@
 shopt -s extglob nocasematch
 set -euo pipefail
 
-# sanitize values for aws s3 --metadata "k=v,k2=v2" (no commas/newlines/tabs/CRs)
-sanitize() {
+# sanitise values for aws s3 --metadata "k=v,k2=v2" (no commas/newlines/tabs/CRs)
+sanitise() {
   local s
   s=$1
   s=${s//$'\r'/ }   # CR
@@ -60,17 +60,17 @@ echo "::group::Gathering release metadata"
 release_metadata=(
   "commitsha=$GITHUB_SHA"                                                    # Head commit SHA
   "committag=$(git describe --tags --first-parent --always)"                 # Head commit tag or short SHA
-  "commitmessage=$(sanitize "$(echo "$HEAD_MESSAGE" | head -n 1 | cut -c1-50)")"         # Shortened head commit subject
-  "mergetime=$(sanitize "$(TZ=UTC0 git log -1 --format=%cd --date=format-local:"%F %T")")" # Merge to main UTC timestamp
-  "commitauthor=$(sanitize "$GITHUB_ACTOR")"
-  "repository=$(sanitize "$GITHUB_REPOSITORY")"
+  "commitmessage=$(sanitise "$(echo "$HEAD_MESSAGE" | head -n 1 | cut -c1-50)")"         # Shortened head commit subject
+  "mergetime=$(sanitise "$(TZ=UTC0 git log -1 --format=%cd --date=format-local:"%F %T")")" # Merge to main UTC timestamp
+  "commitauthor=$(sanitise "$GITHUB_ACTOR")"
+  "repository=$(sanitise "$GITHUB_REPOSITORY")"
   "skipcanary=${skip_canary:-0}"
   "closecircuitbreaker=${close_circuit_breaker:-0}"
 )
 
 [[ ${VERSION:-} ]] && release_metadata+=(
-  "codepipeline-artifact-revision-summary=$(sanitize "$VERSION")"
-  "release=$(sanitize "$VERSION")"
+  "codepipeline-artifact-revision-summary=$(sanitise "$VERSION")"
+  "release=$(sanitise "$VERSION")"
 )
 
 metadata=$(IFS="," && echo "${release_metadata[*]}")
