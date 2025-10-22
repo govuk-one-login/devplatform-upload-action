@@ -6,10 +6,10 @@ set -euo pipefail
 sanitise() {
   local s
   s=$1
-  s=${s//$'\r'/ }   # CR
-  s=${s//$'\n'/ }   # LF
-  s=${s//$'\t'/ }   # TAB
-  s=${s//,/ }       # commas are separators in --metadata
+  s=${s//$'\r'/ } # CR
+  s=${s//$'\n'/ } # LF
+  s=${s//$'\t'/ } # TAB
+  s=${s//,/ }     # commas are separators in --metadata
   printf '%s' "$s"
 }
 
@@ -60,9 +60,9 @@ echo "::group::Gathering release metadata"
 [[ $COMMIT_MESSAGES =~ \[(close circuit breaker|end circuit breaker)\] ]] && close_circuit_breaker=1
 
 release_metadata=(
-  "commitsha=$GITHUB_SHA"                                                    # Head commit SHA
-  "committag=$(git describe --tags --first-parent --always)"                 # Head commit tag or short SHA
-  "commitmessage=$(sanitise "$(echo "$HEAD_MESSAGE" | head -n 1 | cut -c1-50)")"         # Shortened head commit subject
+  "commitsha=$GITHUB_SHA" # Head commit SHA
+  "committag=$(git describe --tags --first-parent --always)" # Head commit tag or short SHA
+  "commitmessage=$(sanitise "$(echo "$HEAD_MESSAGE" | head -n 1 | cut -c1-50)")" # Shortened head commit subject
   "mergetime=$(sanitise "$(TZ=UTC0 git log -1 --format=%cd --date=format-local:"%F %T")")" # Merge to main UTC timestamp
   "commitauthor=$(sanitise "$GITHUB_ACTOR")"
   "repository=$(sanitise "$GITHUB_REPOSITORY")"
@@ -76,7 +76,7 @@ release_metadata=(
 )
 
 metadata=$(IFS="," && echo "${release_metadata[*]}")
-column -ts= < <(tr "," "\n" <<< "$metadata")
+column -ts= < <(tr "," "\n" <<<"$metadata")
 
 echo "::endgroup::"
 echo "::group::Writing Lambda provenance"
