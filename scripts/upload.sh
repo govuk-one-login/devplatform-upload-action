@@ -13,6 +13,8 @@ sanitise() {
   printf '%s' "$s"
 }
 
+sanitize() { sanitise "$@"; }
+
 : "${ARTIFACT_BUCKET:?}"
 : "${GITHUB_REPOSITORY:?}"
 : "${GITHUB_ACTOR:?}"
