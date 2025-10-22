@@ -13,7 +13,7 @@ sanitise() {
   printf '%s' "$s"
 }
 
-# US spelling alias
+# spelling alias
 sanitize() { sanitise "$@"; }
 
 : "${ARTIFACT_BUCKET:?}"
