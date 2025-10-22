@@ -125,4 +125,3 @@ zip template.zip "$TEMPLATE_OUT_FILE"
 
 echo "» Uploading artifact to S3"
 aws s3 cp template.zip "s3://$ARTIFACT_BUCKET/${s3_prefix:-}template.zip" --metadata "$metadata"
-
