@@ -2,6 +2,20 @@
 shopt -s extglob nocasematch
 set -euo pipefail
 
+# sanitise values for aws s3 --metadata "k=v,k2=v2" (no commas/newlines/tabs/CRs)
+sanitise() {
+  local s
+  s=$1
+  s=${s//$'\r'/ } # CR
+  s=${s//$'\n'/ } # LF
+  s=${s//$'\t'/ } # TAB
+  s=${s//,/ }     # commas are separators in --metadata
+  printf '%s' "$s"
+}
+
+# spelling alias
+sanitize() { sanitise "$@"; }
+
 : "${ARTIFACT_BUCKET:?}"
 : "${GITHUB_REPOSITORY:?}"
 : "${GITHUB_ACTOR:?}"
@@ -47,19 +61,19 @@ echo "::group::Gathering release metadata"
 [[ $COMMIT_MESSAGES =~ \[(close circuit breaker|end circuit breaker)\] ]] && close_circuit_breaker=1
 
 release_metadata=(
-  "commitsha=$GITHUB_SHA"                                                    # Head commit SHA
-  "committag=$(git describe --tags --first-parent --always)"                 # Head commit tag or short SHA
-  "commitmessage='$(echo "$HEAD_MESSAGE" | head -n 1 | cut -c1-50)'"         # Shortened head commit subject
-  "mergetime=$(TZ=UTC0 git log -1 --format=%cd --date=format-local:"%F %T")" # Merge to main UTC timestamp
-  "commitauthor='$GITHUB_ACTOR'"
-  "repository=$GITHUB_REPOSITORY"
+  "commitsha=$GITHUB_SHA"                                                                  # Head commit SHA
+  "committag=$(git describe --tags --first-parent --always)"                               # Head commit tag or short SHA
+  "commitmessage=$(sanitise "$(echo "$HEAD_MESSAGE" | head -n 1 | cut -c1-50)")"           # Shortened head commit subject
+  "mergetime=$(sanitise "$(TZ=UTC0 git log -1 --format=%cd --date=format-local:"%F %T")")" # Merge to main UTC timestamp
+  "commitauthor=$(sanitise "$GITHUB_ACTOR")"
+  "repository=$(sanitise "$GITHUB_REPOSITORY")"
   "skipcanary=${skip_canary:-0}"
   "closecircuitbreaker=${close_circuit_breaker:-0}"
 )
 
 [[ ${VERSION:-} ]] && release_metadata+=(
-  "codepipeline-artifact-revision-summary=$VERSION"
-  "release=$VERSION"
+  "codepipeline-artifact-revision-summary=$(sanitise "$VERSION")"
+  "release=$(sanitise "$VERSION")"
 )
 
 metadata=$(IFS="," && echo "${release_metadata[*]}")
@@ -71,7 +85,7 @@ echo "::group::Writing Lambda provenance"
 for lambda in "${lambdas[@]}"; do
   if uri=$(yq --exit-status ".Resources.${lambda}.Properties | .CodeUri // .ContentUri" "$TEMPLATE_OUT_FILE"); then
     echo "❭ $lambda"
-    aws s3 cp "$uri" "$uri" --metadata "$metadata"
+    aws s3 cp "$uri" "$uri" --metadata-directive REPLACE --metadata "$metadata"
   fi
 done
 
@@ -88,17 +102,18 @@ if [ -n "${SYNTHETICS_DIRECTORY}" ]; then
 
   echo "ℹ Found ${#synthetic_canaries[@]} Synthetic Canary(ies) in the template"
 
-  for synhtetic_canary in "${synthetic_canaries[@]}"; do
-    if s3_key=$(yq --exit-status ".Resources.${synhtetic_canary}.Properties.Code.S3Key" "$TEMPLATE_OUT_FILE"); then
-      echo "❭ $synhtetic_canary"
+  for synthetic_canary in "${synthetic_canaries[@]}"; do
+    if s3_key=$(yq --exit-status ".Resources.${synthetic_canary}.Properties.Code.S3Key" "$TEMPLATE_OUT_FILE"); then
+      echo "❭ $synthetic_canary"
       version_id=$(aws s3api put-object \
         --bucket "$ARTIFACT_BUCKET" \
         --key "$s3_key" \
         --body "$SYNTHETICS_DIRECTORY"/"$s3_key" \
         --metadata "$metadata" \
-        --query VersionId)
+        --query VersionId \
+        --output text)
 
-      yq -i ".Resources.${synhtetic_canary}.Properties.Code.S3ObjectVersion = $version_id" "$TEMPLATE_OUT_FILE"
+      yq -i ".Resources.${synthetic_canary}.Properties.Code.S3ObjectVersion = \"$version_id\"" "$TEMPLATE_OUT_FILE"
     fi
   done
 
