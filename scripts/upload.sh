@@ -77,7 +77,7 @@ done
 
 echo "::endgroup::"
 
-if [ -n "${SYNTHETICS_DIRECTORY}" ]; then
+if [[ ${SYNTHETICS_DIRECTORY:-} ]]; then
   echo "::group::Uploading Synthetic Canaries"
   echo "» Parsing Synthetic Canaries to be uploaded"
 

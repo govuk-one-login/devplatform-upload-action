@@ -113,3 +113,62 @@ jobs:
           ARTIFACT_PREFIX: ${{ steps.get-branch-name.outputs.pretty-branch-name }}
           ARTIFACT_BUCKET: ${{ vars.ARTIFACT_SOURCE_BUCKET }}
           VERSION: test-${{ github.sha }}
+
+  run-upload-script-tests:
+    name: Test upload script
+    environment: development
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull demo SAM app
+        uses: actions/checkout@v4
+        with:
+          repository: govuk-one-login/devplatform-demo-sam-app
+          path: demo
+
+      - name: Build demo SAM app
+        uses: govuk-one-login/github-actions/sam/build-application@5480cced560e896dea12c47ea33e548a4d093e65
+        with:
+          template: demo/sam-app2/template.yaml
+          source-dir: demo/sam-app2/HelloWorldFunction
+
+      - name: Trim branch name
+        uses: govuk-one-login/github-actions/beautify-branch-name@5480cced560e896dea12c47ea33e548a4d093e65
+        id: get-branch-name
+        with:
+          length-limit: 63
+          verbose: false
+
+      - name: Pull action
+        uses: actions/checkout@v4
+        with:
+          path: upload-action
+
+      - name: Assume AWS Role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: eu-west-2
+
+      - name: Run upload script
+        working-directory: upload-action
+        run: scripts/upload.sh
+        shell: bash
+        id: upload-sam-app
+        env:
+          ARTIFACT_BUCKET: ${{ vars.ARTIFACT_SOURCE_BUCKET }}
+          ARTIFACT_PREFIX: ${{ steps.get-branch-name.outputs.pretty-branch-name }}/upload-script-tests
+          HEAD_MESSAGE: Message' with" 'quotes" for" testing'
+          SIGNING_PROFILE: ${{ vars.SIGNING_PROFILE_NAME }}
+          TEMPLATE_FILE: ../.aws-sam/build/template.yaml
+          VERSION: test-${{ github.sha }}
+
+      - name: Check uploaded artifact
+        working-directory: upload-action
+        run: scripts/utility.test.sh
+        shell: bash
+        env:
+          ARTIFACT_BUCKET: ${{ vars.ARTIFACT_SOURCE_BUCKET }}
+          ARTIFACT_PREFIX: ${{ steps.get-branch-name.outputs.pretty-branch-name }}/upload-script-tests
+          COMMIT_MESSAGE: Message' with" 'quotes" for" testing'
+          TEMPLATE_FILE: ${{ steps.upload-sam-app.outputs.template-out-file }}
+          VERSION: test-${{ github.sha }}
