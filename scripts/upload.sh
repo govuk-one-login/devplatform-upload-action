@@ -88,9 +88,9 @@ if [ -n "${SYNTHETICS_DIRECTORY}" ]; then
 
   echo "ℹ Found ${#synthetic_canaries[@]} Synthetic Canary(ies) in the template"
 
-  for synhtetic_canary in "${synthetic_canaries[@]}"; do
-    if s3_key=$(yq --exit-status ".Resources.${synhtetic_canary}.Properties.Code.S3Key" "$TEMPLATE_OUT_FILE"); then
-      echo "❭ $synhtetic_canary"
+  for synthetic_canary in "${synthetic_canaries[@]}"; do
+    if s3_key=$(yq --exit-status ".Resources.${synthetic_canary}.Properties.Code.S3Key" "$TEMPLATE_OUT_FILE"); then
+      echo "❭ $synthetic_canary"
       version_id=$(aws s3api put-object \
         --bucket "$ARTIFACT_BUCKET" \
         --key "$s3_key" \
@@ -98,7 +98,7 @@ if [ -n "${SYNTHETICS_DIRECTORY}" ]; then
         --metadata "$metadata" \
         --query VersionId)
 
-      yq -i ".Resources.${synhtetic_canary}.Properties.Code.S3ObjectVersion = $version_id" "$TEMPLATE_OUT_FILE"
+      yq -i ".Resources.${synthetic_canary}.Properties.Code.S3ObjectVersion = $version_id" "$TEMPLATE_OUT_FILE"
     fi
   done
 
