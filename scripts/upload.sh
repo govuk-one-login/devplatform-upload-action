@@ -47,10 +47,10 @@ echo "::group::Gathering release metadata"
 [[ $COMMIT_MESSAGES =~ \[(close circuit breaker|end circuit breaker)\] ]] && close_circuit_breaker=1
 
 release_metadata=(
-  "commitsha=$GITHUB_SHA"                                                    # Head commit SHA
-  "committag=$(git describe --tags --first-parent --always)"                 # Head commit tag or short SHA
-  "commitmessage='$(echo "$HEAD_MESSAGE" | head -n 1 | cut -c1-50)'"         # Shortened head commit subject
-  "mergetime=$(TZ=UTC0 git log -1 --format=%cd --date=format-local:"%F %T")" # Merge to main UTC timestamp
+  "commitsha=$GITHUB_SHA"                                                       # Head commit SHA
+  "committag=$(git describe --tags --first-parent --always)"                    # Head commit tag or short SHA
+  "commitmessage='$(echo "${HEAD_MESSAGE//\'/\\\'}" | head -n 1 | cut -c1-50)'" # Shorten head commit subject and escape '
+  "mergetime=$(TZ=UTC0 git log -1 --format=%cd --date=format-local:"%F %T")"    # Merge to main UTC timestamp
   "commitauthor='$GITHUB_ACTOR'"
   "repository=$GITHUB_REPOSITORY"
   "skipcanary=${skip_canary:-0}"
@@ -77,7 +77,7 @@ done
 
 echo "::endgroup::"
 
-if [ -n "${SYNTHETICS_DIRECTORY}" ]; then
+if [[ ${SYNTHETICS_DIRECTORY:-} ]]; then
   echo "::group::Uploading Synthetic Canaries"
   echo "» Parsing Synthetic Canaries to be uploaded"
 
@@ -88,9 +88,9 @@ if [ -n "${SYNTHETICS_DIRECTORY}" ]; then
 
   echo "ℹ Found ${#synthetic_canaries[@]} Synthetic Canary(ies) in the template"
 
-  for synhtetic_canary in "${synthetic_canaries[@]}"; do
-    if s3_key=$(yq --exit-status ".Resources.${synhtetic_canary}.Properties.Code.S3Key" "$TEMPLATE_OUT_FILE"); then
-      echo "❭ $synhtetic_canary"
+  for synthetic_canary in "${synthetic_canaries[@]}"; do
+    if s3_key=$(yq --exit-status ".Resources.${synthetic_canary}.Properties.Code.S3Key" "$TEMPLATE_OUT_FILE"); then
+      echo "❭ $synthetic_canary"
       version_id=$(aws s3api put-object \
         --bucket "$ARTIFACT_BUCKET" \
         --key "$s3_key" \
@@ -98,7 +98,7 @@ if [ -n "${SYNTHETICS_DIRECTORY}" ]; then
         --metadata "$metadata" \
         --query VersionId)
 
-      yq -i ".Resources.${synhtetic_canary}.Properties.Code.S3ObjectVersion = $version_id" "$TEMPLATE_OUT_FILE"
+      yq -i ".Resources.${synthetic_canary}.Properties.Code.S3ObjectVersion = $version_id" "$TEMPLATE_OUT_FILE"
     fi
   done
 
