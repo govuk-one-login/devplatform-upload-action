@@ -1,6 +1,6 @@
 # Terraform Upload Action
 
-This is an action that allows you to package, sign and uploads Terraform configurations to S3 for secure infra pipelines using GitHub Actions.
+This is an action that allows you to package, sign and upload Terraform configurations to S3 for secure infra pipelines using GitHub Actions.
 
 It adds the following metadata to the S3 object:
 
@@ -25,7 +25,7 @@ Pull in the action in your workflow as below, making sure to specify the release
 
 ```yaml
 - name: Publish Terraform Artifact
-  uses: govuk-one-login/devplatform-upload-action/terraform-upload-action@<version-number>
+  uses: govuk-one-login/devplatform-upload-action/terraform@<version-number>
   with:
     working-directory: './terraform'
     aws-role-arn: ${{ vars.SECURE_INFRA_PIPELINE_ROLE }}
@@ -112,5 +112,5 @@ jobs:
       contents: read
     steps:
       - name: Upload and tag
-        uses: govuk-one-login/devplatform-upload-action/terraform-upload-action@<BRANCH_NAME>
+        uses: govuk-one-login/devplatform-upload-action/terraform@<BRANCH_NAME>
 ```

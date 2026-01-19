@@ -151,7 +151,7 @@ jobs:
 
       - name: Run upload script
         working-directory: upload-action
-        run: scripts/upload.sh
+        run: scripts/upload.sam.sh
         shell: bash
         id: upload-sam-app
         env:

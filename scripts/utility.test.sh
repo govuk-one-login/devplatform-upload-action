@@ -12,7 +12,7 @@ set -euo pipefail
 : "${CLOSE_CIRCUIT_BREAKER:=0}"
 : "${GITHUB_SHA:=$(git rev-parse HEAD)}"
 : "${GIT_TAG:=$(git describe --tags --first-parent --always)}"
-: "${COMMIT_MESSAGE:=$(git log -1 --format=%s | head -n 1 | cut -c1-50)}"
+: "${COMMIT_MESSAGE:=$(git log -1 --format=%s | head -n 1 | cut -c1-50 | xargs)}"
 : "${MERGE_TS:=$(TZ=UTC0 git log -1 --format=%cd --date=format-local:"%F %T")}"
 
 : "${TEMPLATE_FILE:=cf-template.yaml}"

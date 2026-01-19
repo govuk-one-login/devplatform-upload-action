@@ -42,4 +42,4 @@ $NO_PREFIX || export ARTIFACT_PREFIX=${ARTIFACT_PREFIX:-$user}
 echo "ℹ Using template $TEMPLATE_FILE"
 echo "ℹ Using bucket $ARTIFACT_BUCKET/${ARTIFACT_PREFIX:-}"
 
-scripts/upload.sh
+scripts/upload.sam.sh

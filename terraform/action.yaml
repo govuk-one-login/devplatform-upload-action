@@ -40,7 +40,7 @@ runs:
 
     - name: Execute Packaging, Signing, and Upload
       shell: bash
-      run: ${{ github.action_path }}/../scripts/terraform-upload.sh
+      run: ${{ github.action_path }}/../scripts/upload.terraform.sh
       env:
         WORKING_DIRECTORY: ${{ inputs.working-directory }}
         ARTIFACT_BUCKET: ${{ inputs.artifact-bucket-name }}
