@@ -68,6 +68,7 @@ runs:
         HEAD_MESSAGE: ${{ github.event.head_commit.message }}
         COMMIT_MESSAGES: ${{ join(github.event.commits.*.message, ' | ') }}
       run: |
+        echo "${{ github.path }}"
         #For backwards compatibility. If action_path doesn't contain new /sam folder, it is pointing to root, so add `/sam`
         if [[ "${{ github.action_path }}" != */sam ]]; then
           SAM_ACTION_DIR="${{ github.action_path }}/sam"
