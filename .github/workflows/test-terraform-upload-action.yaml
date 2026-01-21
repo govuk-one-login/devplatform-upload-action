@@ -1,0 +1,129 @@
+name: Test Terraform upload action
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+concurrency:
+  group: test-terraform-upload-action-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  run-tests:
+    name: Test terraform upload action
+    environment: development
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull action code
+        uses: actions/checkout@v4
+
+      - name: Trim branch name
+        uses: govuk-one-login/github-actions/beautify-branch-name@5480cced560e896dea12c47ea33e548a4d093e65
+        id: get-branch-name
+        with:
+          length-limit: 63
+          verbose: false
+
+      - name: Create Dummy Terraform Artifact
+        id: upload-terraform-artifact
+        run: |
+          TF_DIR="../terraform"
+          mkdir -p "$TF_DIR/modules/auth_logic"
+          # 1. Create a child module in modules/auth_logic
+          cat <<EOF > "$TF_DIR/modules/auth_logic/main.tf"
+          resource "null_resource" "dependency_check" {}
+          EOF
+          # 2. Create the main.tf that uses the child module
+          cat <<EOF > "$TF_DIR/main.tf"
+          module "my_test_dependency" {
+            source = "./modules/auth_logic"
+          }
+          EOF
+          echo "tf_path=$TF_DIR" >> $GITHUB_OUTPUT
+          echo "commit_message=$(git log -1 --format=%s | tr '\n' ' ' | tr -d '"[]' | cut -c1-200 | xargs)" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Upload Terraform via Action
+        uses: ./terraform
+        id: upload-tf
+        with:
+          aws-role-arn: ${{ vars.AWS_ROLE_ARN }}
+          artifact-bucket-name: ${{ vars.ARTIFACT_SOURCE_BUCKET }}
+          artifact-bucket-prefix: ${{ steps.get-branch-name.outputs.pretty-branch-name }}/upload-terraform-action-tests
+          working-directory: ${{ steps.upload-terraform-artifact.outputs.tf_path }}
+
+      - name: Check uploaded artifact
+        run: scripts/upload.terraform.test.sh
+        shell: bash
+        env:
+          ARTIFACT_BUCKET: ${{ vars.ARTIFACT_SOURCE_BUCKET }}
+          ARTIFACT_PREFIX: ${{ steps.get-branch-name.outputs.pretty-branch-name }}/upload-terraform-action-tests
+          COMMIT_MESSAGE: ${{ steps.upload-terraform-artifact.outputs.commit_message }}
+          ZIP_FILE: package.zip
+          VERSION: test-${{ github.sha }}
+
+  run-upload-script-tests:
+    name: Test terraform upload script
+    environment: development
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull action code
+        uses: actions/checkout@v4
+
+      - name: Trim branch name
+        uses: govuk-one-login/github-actions/beautify-branch-name@5480cced560e896dea12c47ea33e548a4d093e65
+        id: get-branch-name
+        with:
+          length-limit: 63
+          verbose: false
+
+      - name: Create Dummy Terraform Artifact
+        id: upload-terraform-artifact
+        run: |
+          TF_DIR="terraform"
+          mkdir -p "$TF_DIR/modules/auth_logic"
+          # 1. Create a child module in modules/auth_logic
+          cat <<EOF > "$TF_DIR/modules/auth_logic/main.tf"
+          resource "null_resource" "dependency_check" {}
+          EOF
+          # 2. Create the main.tf that uses the child module
+          cat <<EOF > "$TF_DIR/main.tf"
+          module "my_test_dependency" {
+            source = "./modules/auth_logic"
+          }
+          EOF
+          echo "tf_path=$TF_DIR/main.tf" >> $GITHUB_OUTPUT
+          echo "commit_message=$(git log -1 --format=%s | tr '\n' ' ' | tr -d '"[]' | cut -c1-200 | xargs)" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Assume AWS Role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: eu-west-2
+
+      - name: Run upload script
+        run: scripts/upload.terraform.sh
+        shell: bash
+        id: upload-tf
+        env:
+          ARTIFACT_BUCKET: ${{ vars.ARTIFACT_SOURCE_BUCKET }}
+          ARTIFACT_PREFIX: ${{ steps.get-branch-name.outputs.pretty-branch-name }}/upload-terraform-scripts-tests
+          WORKING_DIRECTORY: terraform
+
+      - name: Check uploaded artifact
+        run: scripts/upload.terraform.test.sh
+        shell: bash
+        env:
+          ARTIFACT_BUCKET: ${{ vars.ARTIFACT_SOURCE_BUCKET }}
+          ARTIFACT_PREFIX: ${{ steps.get-branch-name.outputs.pretty-branch-name }}/upload-terraform-scripts-tests
+          COMMIT_MESSAGE: ${{ steps.upload-terraform-artifact.outputs.commit_message }}
+          ZIP_FILE: package.zip
+          VERSION: test-${{ github.sha }}

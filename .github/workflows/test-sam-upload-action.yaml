@@ -1,4 +1,4 @@
-name: Test upload action
+name: Test SAM upload action
 
 on:
   workflow_dispatch:

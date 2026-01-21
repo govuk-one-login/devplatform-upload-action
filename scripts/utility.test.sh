@@ -102,3 +102,70 @@ function verify-object-metadata() {
 
   validate-results "Invalid metadata"
 }
+
+function verify-terraform-zip-contents() {
+  local s3_key=$1
+  local local_zip="downloaded_package.zip"
+
+  echo "🔎 Verifying internal dependencies for $s3_key..."
+  aws s3 cp "s3://$ARTIFACT_BUCKET/$s3_key" "$local_zip"
+
+  echo "📦 Checking zip file for service.zip"
+  if ! unzip -l "$local_zip" | grep -q "service.zip"; then
+    report-error "Missing service.zip in package"
+    return 1
+  fi
+
+  echo "📦 Checking zip file for ZipSignature"
+  if ! unzip -l "$local_zip" | grep -q "ZipSignature"; then
+    report-error "Missing ZipSignature file in package"
+    return 1
+  fi
+
+  unzip -p "$local_zip" service.zip > nested_service.zip
+
+  echo "📦 Checking zip file for .terraform/modules"
+  if ! unzip -l nested_service.zip | grep -q ".terraform/modules/"; then
+    report-error "Error: .terraform/modules directory missing in service.zip"
+    return 1
+  fi
+
+  echo "📦 Checking zip file for modules.json"
+  if ! unzip -l nested_service.zip | grep -q ".terraform/modules/modules.json"; then
+    report-error "Error: .terraform/modules directory missing in service.zip"
+    return 1
+  fi
+
+  echo "📦 Checking 'terraform get' dependencies"
+  manifest=$(unzip -p nested_service.zip "*/.terraform/modules/modules.json")
+  if [[ -z "$manifest" ]]; then
+    report-error "Error: Could not extract content from modules.json"
+    return 1
+  fi
+
+  if echo "$manifest" | grep -q "my_test_dependency"; then
+    echo "✅ Success: 'terraform get' successfully mapped 'my_test_dependency'"
+  else
+    echo "❌ Error: 'my_test_dependency' not found in modules.json"
+    exit 1
+  fi
+
+  echo "📦 Checking zip file for main.tf"
+  if ! unzip -l nested_service.zip | grep -q "main.tf"; then
+    report-error "Error: main.tf not found inside .terraform/modules in service.zip"
+    return 1
+  fi
+
+  echo "✅ All internal zip requirements met."
+}
+
+function verify-terraform-zipsum() {
+  local s3_zipsum=$1
+
+  if aws s3 ls "$s3_zipsum" > /dev/null 2>&1; then
+    echo "✅ Success: zipsum.txt found on S3."
+  else
+    echo "❌ Error: zipsum.txt is missing from S3!"
+    exit 1
+  fi
+}
