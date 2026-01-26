@@ -48,4 +48,5 @@ runs:
         ARTIFACT_PREFIX: ${{ inputs.artifact-bucket-prefix }}
         SIGNING_PROFILE: ${{ inputs.signing-profile-name }}
         HEAD_MESSAGE: ${{ github.event.head_commit.message }}
+        COMMIT_MESSAGES: ${{ join(github.event.commits.*.message, ' | ') }}
         COMMIT_SHA: ${{ github.event.head_commit.id }}

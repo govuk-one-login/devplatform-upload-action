@@ -5,10 +5,11 @@ source scripts/utility.test.sh
 
 : "${ARTIFACT_BUCKET:?}"
 : "${ARTIFACT_PREFIX:=""}"
-: "${COMMIT_MESSAGE:=$(git log -1 --format=%s | head -n 1 | cut -c1-200)}"
+: "${COMMIT_MESSAGE:=$(git log -1 --format=%s | head -n 1 | cut -c1-50)}"
 : "${VERSION:=}"
 : "${ZIP_FILE:=package.zip}"
 
+COMMIT_MESSAGE=$(echo "$COMMIT_MESSAGE" | tr '[]' '()')
 # Overwrite the global `expected_metadata` array in `utility.test.sh` with Terraform-specific keys
 expected_metadata=(
   [commitsha]=$GITHUB_SHA

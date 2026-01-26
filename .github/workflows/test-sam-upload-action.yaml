@@ -56,7 +56,7 @@ jobs:
 
       - name: Check uploaded artifact
         working-directory: upload-action
-        run: scripts/upload.test.sh
+        run: scripts/upload.sam.test.sh
         shell: bash
         env:
           TEMPLATE_FILE: ${{ steps.upload-sam-app.outputs.template-out-file }}
