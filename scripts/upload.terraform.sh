@@ -4,16 +4,20 @@ shopt -s extglob nocasematch
 
 : "${WORKING_DIRECTORY:?}"
 : "${ARTIFACT_BUCKET:?}"
-: "${SIGNING_PROFILE:-}"
+: "${ARTIFACT_PREFIX:=""}"
+: "${SIGNING_PROFILE:=""}"
 : "${HEAD_MESSAGE:=$(git log -1 --format=%s)}"
 : "${COMMIT_SHA:=$(git rev-parse HEAD)}"
 : "${GITHUB_REPOSITORY:?}"
+
+[[ ${ARTIFACT_PREFIX:-} ]] && s3_prefix=${ARTIFACT_PREFIX%%+(/)}/
 
 cd "$GITHUB_WORKSPACE"
 if [ ! -d "$WORKING_DIRECTORY" ]; then
   echo "Error: Working directory $WORKING_DIRECTORY not found." >&2
   exit 1
 fi
+
 cd "$WORKING_DIRECTORY"
 terraform get
 
@@ -27,18 +31,22 @@ SIGNATURE_FILE="ZipSignature"
 PACKAGE_FILE="package.zip"
 md5sum "$SERVICE_ZIP_PATH" | cut -c -32 > $ZIPSUM_FILE
 
-aws kms sign \
-  --key-id "$SIGNING_PROFILE" \
-  --message fileb://"$ZIPSUM_FILE" \
-  --signing-algorithm RSASSA_PSS_SHA_256 \
-  --message-type RAW \
-  --output text \
-  --query Signature | base64 --decode > $SIGNATURE_FILE
-
+if [[ -n "$SIGNING_PROFILE" ]]; then
+  aws kms sign \
+    --key-id "$SIGNING_PROFILE" \
+    --message fileb://"$ZIPSUM_FILE" \
+    --signing-algorithm RSASSA_PSS_SHA_256 \
+    --message-type RAW \
+    --output text \
+    --query Signature | base64 --decode > $SIGNATURE_FILE
+else
+  echo "No SIGNING_PROFILE provided, skipping signing step."
+  touch $SIGNATURE_FILE
+fi
 zip -r $PACKAGE_FILE "$SERVICE_ZIP_NAME" "$SIGNATURE_FILE"
 
 COMMIT_MESSAGE=$(echo "$HEAD_MESSAGE" | tr '\n' ' ' | tr -d '"[]' | cut -c1-200)
 METADATA="repository=$GITHUB_REPOSITORY,commitsha=$COMMIT_SHA,commitmessage=$COMMIT_MESSAGE"
 
-aws s3 cp $PACKAGE_FILE "s3://${ARTIFACT_BUCKET}/$PACKAGE_FILE" --metadata "${METADATA}"
-aws s3 cp $ZIPSUM_FILE "s3://${ARTIFACT_BUCKET}/$ZIPSUM_FILE" --metadata "${METADATA}"
+aws s3 cp $PACKAGE_FILE "s3://${ARTIFACT_BUCKET}/${s3_prefix:-}$PACKAGE_FILE" --metadata "${METADATA}"
+aws s3 cp $ZIPSUM_FILE "s3://${ARTIFACT_BUCKET}/${s3_prefix:-}$ZIPSUM_FILE" --metadata "${METADATA}"
