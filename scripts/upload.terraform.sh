@@ -7,6 +7,7 @@ shopt -s extglob nocasematch
 : "${ARTIFACT_PREFIX:=""}"
 : "${SIGNING_PROFILE:=""}"
 : "${HEAD_MESSAGE:=$(git log -1 --format=%s)}"
+: "${COMMIT_MESSAGES:=}"
 : "${COMMIT_SHA:=$(git rev-parse HEAD)}"
 : "${GITHUB_REPOSITORY:?}"
 
@@ -45,8 +46,21 @@ else
 fi
 zip -r $PACKAGE_FILE "$SERVICE_ZIP_NAME" "$SIGNATURE_FILE"
 
-COMMIT_MESSAGE=$(echo "$HEAD_MESSAGE" | tr '\n' ' ' | tr -d '"[]' | cut -c1-200)
-METADATA="repository=$GITHUB_REPOSITORY,commitsha=$COMMIT_SHA,commitmessage=$COMMIT_MESSAGE"
-
+if [[ $COMMIT_MESSAGES =~ \[(auto[ -]approve[ -]all|skip[ -]approval)\] ]]; then
+  skip_approval=true
+  skip_envs=""
+else
+  skip_approval=false
+  if env=$(echo "$COMMIT_MESSAGES" | grep -oP "(auto[ -]approve|skip[ -]approval)[ -]\K[^] ]+"); then
+    skip_envs=$(echo "$env" | tr '\n' ',' | sed 's/,$//')
+  else
+    skip_envs=""
+  fi
+fi
+COMMIT_MESSAGE=$(echo "${HEAD_MESSAGE}" | tr '[]' '()' | tr '\n' ' ' | tr ',' ';' | head -n 1 | cut -c1-50 | xargs)
+METADATA="repository=$GITHUB_REPOSITORY,commitsha=$COMMIT_SHA,commitmessage=$COMMIT_MESSAGE,skipapproval=${skip_approval:-false}"
+if [ -n "$skip_envs" ]; then
+  METADATA="$METADATA,skipapprovalenvs='$skip_envs'"
+fi
 aws s3 cp $PACKAGE_FILE "s3://${ARTIFACT_BUCKET}/${s3_prefix:-}$PACKAGE_FILE" --metadata "${METADATA}"
 aws s3 cp $ZIPSUM_FILE "s3://${ARTIFACT_BUCKET}/${s3_prefix:-}$ZIPSUM_FILE" --metadata "${METADATA}"

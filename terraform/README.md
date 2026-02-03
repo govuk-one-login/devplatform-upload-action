@@ -9,16 +9,19 @@ It adds the following metadata to the S3 object:
 | `commitsha`     | The full SHA of the head git commit |
 | `commitmessage` | The first 50 characters of the first line (subject) of the head commit message |
 | `repository`    | The name of the git repository where the workflow was initiated from. This will usually be the repository containing the terraform configuration deployed |
+| `skipapproval`  | Flag to indicate if the requirement for manual approval should be overridden via the [auto-approve-all] or [skip-appproval] magic flags |
+| `skipapprovalenvs` | Comma delimited list of environments where the requirement for manual approval should be overridden via the [auto-approve-_ENV_] or [skip-appproval-_ENV_] magic flags (where _ENV_ is a the name of an environment eg `dev`, `production`) |
 
 ## Action Inputs
 
 | Input | Required |Description | Example |
 |----------|----------|----------|----------|
-| artifact-bucket-name | true     | The name of the artifact S3 bucket | artifact-bucket-1234 |
-| signing-profile-name | false     | The name of the Signing Profile in AWS | signing-profile-1234 |
-| aws-region           | false    | The name of the region to use when authenticating to AWS | eu-west-2 |
-| aws-role-arn         | false    | The ARN of the AWS to assume before uploading the artifact |arn:aws:iam::123456789000:role/role-name |
-| working-directory    | false    | The directory containing terraform | ./terraform |
+| artifact-bucket-name   | true     | The name of the artifact S3 bucket | artifact-bucket-1234 |
+| artifact-bucket-prefix | false     | The prefix of the artifact S3 bucket | test-folder |
+| signing-profile-name   | false     | The name of the Signing Profile in AWS | signing-profile-1234 |
+| aws-region             | false    | The name of the region to use when authenticating to AWS | eu-west-2 |
+| aws-role-arn           | false    | The ARN of the AWS to assume before uploading the artifact |arn:aws:iam::123456789000:role/role-name |
+| working-directory      | false    | The directory containing terraform | ./terraform |
 ## Usage Example
 
 Pull in the action in your workflow as below, making sure to specify the release version you require.

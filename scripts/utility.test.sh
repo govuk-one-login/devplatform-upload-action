@@ -12,13 +12,14 @@ set -euo pipefail
 : "${CLOSE_CIRCUIT_BREAKER:=0}"
 : "${GITHUB_SHA:=$(git rev-parse HEAD)}"
 : "${GIT_TAG:=$(git describe --tags --first-parent --always)}"
-: "${COMMIT_MESSAGE:=$(git log -1 --format=%s | head -n 1 | cut -c1-50 | xargs)}"
+: "${COMMIT_MESSAGE:=$(git log -1 --format=%s)}"
 : "${MERGE_TS:=$(TZ=UTC0 git log -1 --format=%cd --date=format-local:"%F %T")}"
 
 : "${TEMPLATE_FILE:=cf-template.yaml}"
 : "${RESULTS_FILE:=${GITHUB_STEP_SUMMARY:-results}}"
 
 rm -f "$RESULTS_FILE"
+COMMIT_MESSAGE=$(echo "$COMMIT_MESSAGE" | head -n 1 | cut -c1-50 | tr ',' ';')
 declare -A expected_metadata
 
 expected_metadata=(
