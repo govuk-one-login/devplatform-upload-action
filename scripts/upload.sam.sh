@@ -57,10 +57,25 @@ release_metadata=(
   "closecircuitbreaker=${close_circuit_breaker:-0}"
 )
 
-[[ ${VERSION:-} ]] && release_metadata+=(
-  "codepipeline-artifact-revision-summary=$VERSION"
-  "release=$VERSION"
-)
+if [[ ${VERSION:-} ]]; then
+  release_metadata+=(
+    "codepipeline-artifact-revision-summary=$VERSION"
+    "release=$VERSION"
+  )
+else
+  if [[ $COMMIT_MESSAGES =~ \(#[0-9]+\) ]]; then
+    # PR is merged: short-sha: #pr-number - title
+    pr_number=$(echo "$COMMIT_MESSAGES" | grep -oP '#\K[0-9]+' | head -1)
+    revision_summary="$(git rev-parse --short HEAD): #${pr_number} - $HEAD_MESSAGE"
+  else
+    # Not merged: short-sha: commit-message
+    revision_summary="$(git rev-parse --short HEAD): $HEAD_MESSAGE"
+  fi
+  revision_summary="${revision_summary:0:2048}"
+  release_metadata+=(
+    "codepipeline-artifact-revision-summary=$revision_summary"
+  )
+fi
 
 metadata=$(IFS="," && echo "${release_metadata[*]}")
 column -ts= < <(tr "," "\n" <<< "$metadata")
