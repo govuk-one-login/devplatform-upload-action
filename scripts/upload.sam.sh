@@ -64,11 +64,9 @@ if [[ ${VERSION:-} ]]; then
   )
 else
   if [[ $COMMIT_MESSAGES =~ \(#[0-9]+\) ]]; then
-    # PR is merged: short-sha: #pr-number - title
     pr_number=$(echo "$COMMIT_MESSAGES" | grep -oP '#\K[0-9]+' | head -1)
     revision_summary="$(git rev-parse --short HEAD): #${pr_number} - $HEAD_MESSAGE"
   else
-    # Not merged: short-sha: commit-message
     revision_summary="$(git rev-parse --short HEAD): $HEAD_MESSAGE"
   fi
   revision_summary="${revision_summary:0:2048}"
