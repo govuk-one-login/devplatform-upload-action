@@ -1,0 +1,89 @@
+name: 'Upload Lambdas'
+description: 'Packages and uploads'
+inputs:
+  artifact-bucket-name:
+    description: 'The name of the artifact S3 bucket'
+    required: true
+  signing-profile-name:
+    description: 'The name of the Signing Profile'
+    required: true
+  working-directory:
+    description: 'The working directory containing the SAM app'
+    required: false
+  template-file:
+    description: 'The name and path of the CF template for the application. This defaults to template.yaml'
+    required: false
+    default: template.yaml
+  version-number:
+    description: 'The version number of the application being deployed. This defaults to ""'
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        # cache: 'pip'
+
+    - name: Set up Homebrew
+      id: set-up-homebrew
+      uses: Homebrew/actions/setup-homebrew@master
+
+    - name: Instal dependencies
+      shell: bash
+      run: pip install -r ${{ github.action_path }}/requirements.txt
+
+    - name: Install Cloudformation Rain
+      shell: bash
+      run: brew install rain
+
+    - name: Git Tag
+      shell: bash
+      run: echo "GIT_TAG=$(git describe --tags --first-parent --always)" >> $GITHUB_ENV
+
+    - name: Remove Special Chars from Commit message
+      shell: bash
+      run: |
+        COMMIT_MESSAGE=${{ github.event.head_commit.message }}
+        echo "FORMATTED_COMMIT_MESSAGE=$(echo $COMMIT_MESSAGE | tr '\n' ' ' | tr -dc '[:alnum:]- ' | cut -c1-50)" >> $GITHUB_ENV
+
+    - name: Merge Time to Main - Displaying in UTC Timezone
+      shell: bash
+      run: MERGE_TIME=$(TZ=UTC0 git log -1 --format=%cd --date=format-local:'%Y-%m-%d %H:%M:%S')
+
+    - name: Sanitise Commit Message and Search for Canary Deployment Instructions
+      shell: bash
+      run: |
+        echo "MSG=$(echo $COMMIT_MESSAGE | tr '\n' ' ' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+        if [[ $MSG =~ "[skip canary]" || $MSG =~ "[canary skip]" || $MSG =~ "[no canary]" ]]; then
+            echo "SKIP_CANARY_DEPLOYMENT=1" >> $GITHUB_ENV
+        else
+            echo "SKIP_CANARY_DEPLOYMENT=0" >> $GITHUB_ENV
+        fi
+
+    - name: Change CFN Template from YAML to JSON
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        rain fmt ${{ inputs.template-file }} --json > json-${{ inputs.template-file }}
+        echo "TEMPLATE_FILE=json-${{ inputs.template-file }}" >> $GITHUB_ENV
+
+    - name: Upload Lambdas to S3
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        ARTIFACT_BUCKET: ${{ inputs.artifact-bucket-name }}
+        COMMIT_MESSAGE: ${{ env.FORMATTED_COMMIT_MESSAGE }}
+        GITHUB_ACTOR: ${{ github.actor }}
+        GIT_SHA: ${{ github.sha }}
+        GIT_TAG: ${{ env.GIT_TAG }}
+        MERGE_TIME: ${{ env.MERGE_TIME }}
+        REPOSITORY: ${{ github.event.repository.name }}
+        SKIP_CANARY_DEPLOYMENT: ${{ env.SKIP_CANARY_DEPLOYMENT }}
+        SIGNING_PROFILE: ${{ inputs.signing-profile-name }}
+        TEMPLATE_FILE: ${{ env.TEMPLATE_FILE }}
+        VERSION_NUMBER: ${{ inputs.version-number }}
+      run: ${{ github.action_path }}/scripts/upload.py
+      shell: bash
