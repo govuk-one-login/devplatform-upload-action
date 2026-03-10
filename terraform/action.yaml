@@ -15,6 +15,9 @@ inputs:
   artifact-bucket-prefix:
     description: The path at which the artifact should be placed within the S3 bucket
     required: false
+  terraform-directory:
+    description: The path to Terraform root module.
+    required: false
   signing-profile-name:
     description: The name of the Signing Profile
     required: false
@@ -31,6 +34,14 @@ runs:
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
+
+    - name: Download Terraform modules
+      shell: bash
+      env:
+        TERRAFORM_DIRECTORY: ${{ inputs.terraform-directory || inputs.working-directory }}
+      run: |
+        cd $TERRAFORM_DIRECTORY
+        terraform get
 
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v5
