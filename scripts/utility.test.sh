@@ -36,11 +36,13 @@ expected_metadata=(
 )
 
 function format-error() {
-  local heading=$1
+  local heading=$1 files=("${@:2}")
   echo "$heading"
-  echo
-  cat "${@:2}"
-  echo
+  if read -t 0 || [[ ${#files[@]} -gt 0 ]]; then
+    echo
+    cat "${files[@]:--}"
+    echo
+  fi
   return 1
 }
 
@@ -49,12 +51,16 @@ function object-message() {
   echo "${message}${name:+ for \`$name\`}${key:+ at \`$key\`}"
 }
 
-function write-error() {
-  format-error "#### 🆇 $(object-message "$1")" "${@:2}" >> "$RESULTS_FILE"
+function console-error() {
+  echo "::error::$(object-message "$@" | tr -d '`')"
 }
 
 function print-error() {
   format-error "::error::$(object-message "$1" | tr -d '`')" "${@:2}" >&2
+}
+
+function write-error() {
+  format-error "#### 🆇 $(object-message "$1")" "${@:2}" >> "$RESULTS_FILE"
 }
 
 function report-error() {
@@ -70,18 +76,20 @@ function add-invalid-result() {
 }
 
 function expand-invalid-results() {
-  invalid-result Key Expected Actual
-  invalid-result - - -
   local IFS=$'\n' && echo "${invalid_results[*]}"
 }
 
+function write-invalid-results() {
+  write-error "$@" <(invalid-result Key Expected Actual) <(invalid-result - - -) -
+}
+
 function print-invalid-results() {
-  sed "s/||/| |/g" | column -ts "|" | print-error "$@"
+  sed "s/||/| |/g" | cat <(invalid-result "[Key]" "[Expected]" "[Actual]") - | column -ts "|" | print-error "$@"
 }
 
 function validate-results() {
   [[ ${#invalid_results[@]} -eq 0 ]] ||
-    expand-invalid-results | tee >(write-error "$@") | print-invalid-results "$@"
+    expand-invalid-results | tee >(write-invalid-results "$@") | print-invalid-results "$@"
 }
 
 function get-object-metadata() {
