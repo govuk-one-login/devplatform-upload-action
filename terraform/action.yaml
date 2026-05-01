@@ -25,6 +25,9 @@ inputs:
     description: The working directory containing terraform
     required: false
     default: ./terraform
+  github-token:
+    description: The token to authenticate to the GitHub API
+    required: false
 
 runs:
   using: composite
@@ -56,6 +59,7 @@ runs:
       env:
         WORKING_DIRECTORY: ${{ inputs.working-directory }}
         ARTIFACT_BUCKET: ${{ inputs.artifact-bucket-name }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
         ARTIFACT_PREFIX: ${{ inputs.artifact-bucket-prefix }}
         SIGNING_PROFILE: ${{ inputs.signing-profile-name }}
         HEAD_MESSAGE: ${{ github.event.head_commit.message }}
