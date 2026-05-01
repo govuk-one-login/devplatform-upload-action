@@ -44,7 +44,7 @@ runs:
         TERRAFORM_DIRECTORY: ${{ inputs.terraform-directory || inputs.working-directory }}
       run: |
         cd $TERRAFORM_DIRECTORY
-        run: git config --global url."https://x-access-token:${{ inputs.github-token }}@github.com/govuk-one-login".insteadOf "ssh://git@github.com/govuk-one-login"
+        git config --global url."https://x-access-token:${{ inputs.github-token }}@github.com/govuk-one-login".insteadOf "ssh://git@github.com/govuk-one-login"
         terraform get
 
     - name: Configure AWS Credentials
