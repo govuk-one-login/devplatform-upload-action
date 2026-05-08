@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Pull demo SAM app
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: govuk-one-login/devplatform-demo-sam-app
           path: demo
@@ -38,7 +38,7 @@ jobs:
           verbose: false
 
       - name: Pull action
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: upload-action
 
@@ -70,7 +70,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Pull demo SAM app
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: govuk-one-login/devplatform-demo-sam-app
           path: demo
@@ -87,7 +87,7 @@ jobs:
           verbose: false
 
       - name: Pull action
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: upload-action
 
@@ -120,7 +120,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Pull demo SAM app
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: govuk-one-login/devplatform-demo-sam-app
           path: demo
@@ -139,12 +139,12 @@ jobs:
           verbose: false
 
       - name: Pull action
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: upload-action
 
       - name: Assume AWS Role
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: eu-west-2

@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Pull action code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Trim branch name
         uses: govuk-one-login/github-actions/beautify-branch-name@5480cced560e896dea12c47ea33e548a4d093e65
@@ -72,7 +72,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Pull action code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Trim branch name
         uses: govuk-one-login/github-actions/beautify-branch-name@5480cced560e896dea12c47ea33e548a4d093e65
@@ -104,7 +104,7 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: Assume AWS Role
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: eu-west-2
