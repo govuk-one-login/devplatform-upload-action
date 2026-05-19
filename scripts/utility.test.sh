@@ -170,3 +170,17 @@ function verify-terraform-zipsum() {
     exit 1
   fi
 }
+
+function verify_git_auth_config() {
+  local token=$1
+  local expected_config="https://x-access-token:${token}@github.com/govuk-one-login"
+  local actual_config
+  actual_config=$(git config --global --get url."${expected_config}".insteadOf 2> /dev/null || true)
+
+  if [[ $actual_config == "ssh://git@github.com/govuk-one-login" ]]; then
+    echo "✅ Success: GitHub App authenticaton configured"
+  else
+    echo "❌ Error: GitHub App authentication configured incorrectly"
+    exit 1
+  fi
+}
