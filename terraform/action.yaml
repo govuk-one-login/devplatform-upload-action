@@ -1,27 +1,33 @@
 name: Terraform Artifact Publisher
-description: "Packages, signs and uploads Terraform configurations to S3 for secure infra pipelines."
+description: Packages, signs and uploads Terraform configurations to S3 for secure infra pipelines.
 
 inputs:
   aws-role-arn:
-    description: The ARN of the AWS role to assume
+    description: The ARN of the AWS role to assume. Available output from infrastructre pipeline stack.
     required: false
   aws-region:
     description: The AWS region to use
     required: false
     default: eu-west-2
   artifact-bucket-name:
-    description: The name of the artifact S3 bucket
+    description: The name of the artifact S3 bucket. Available output from infrastructre pipeline stack.
     required: true
   artifact-bucket-prefix:
     description: The path at which the artifact should be placed within the S3 bucket
     required: false
   signing-profile-name:
-    description: The name of the Signing Profile
+    description: The ARN of the KMS key to sign artifact package. Available output from infrastructre pipeline stack.
     required: false
   working-directory:
     description: The working directory containing terraform
     required: false
     default: ./terraform
+  terraform-root:
+    description: The path to Terraform root module. Use when downloading Terraform modules stored in a private repository. Defaults to working-directory.
+    required: false
+  github-token:
+    description: The token to authenticate to the GitHub API. Use when downloading Terraform modules stored in a private repository.
+    required: false
 
 runs:
   using: composite
@@ -50,3 +56,5 @@ runs:
         HEAD_MESSAGE: ${{ github.event.head_commit.message }}
         COMMIT_MESSAGES: ${{ join(github.event.commits.*.message, ' | ') }}
         COMMIT_SHA: ${{ github.event.head_commit.id }}
+        TERRAFORM_ROOT: ${{ inputs.terraform-root || inputs.working-directory }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
