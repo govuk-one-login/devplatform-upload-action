@@ -10,17 +10,39 @@ shopt -s extglob nocasematch
 : "${COMMIT_MESSAGES:=}"
 : "${COMMIT_SHA:=$(git rev-parse HEAD)}"
 : "${GITHUB_REPOSITORY:?}"
+: "${GITHUB_TOKEN:=}"
+: "${TERRAFORM_ROOT:=}"
 
 [[ ${ARTIFACT_PREFIX:-} ]] && s3_prefix=${ARTIFACT_PREFIX%%+(/)}/
 
+function check_directory() {
+  local directory=${1}
+  if [ ! -d "$directory" ]; then
+    echo "Error: Directory $directory not found." >&2
+    exit 1
+  fi
+}
+
 cd "$GITHUB_WORKSPACE"
-if [ ! -d "$WORKING_DIRECTORY" ]; then
-  echo "Error: Working directory $WORKING_DIRECTORY not found." >&2
-  exit 1
+
+echo "» Checking working-directory"
+check_directory "$WORKING_DIRECTORY"
+
+if [[ -n "$GITHUB_TOKEN" ]]; then
+  echo "::group::Downloading Terraform modules"
+  echo "» Checking terraform-root"
+  check_directory "$TERRAFORM_ROOT"
+
+  git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/govuk-one-login".insteadOf "ssh://git@github.com/govuk-one-login"
+  terraform -chdir="${TERRAFORM_ROOT}" get
+
+  echo "» Terraform modules downloaded"
+  echo "::endgroup::"
 fi
 
+echo "» Checking working-directory"
+check_directory "$WORKING_DIRECTORY"
 cd "$WORKING_DIRECTORY"
-terraform get
 
 SERVICE_ZIP_NAME="service.zip"
 SERVICE_ZIP_PATH="$GITHUB_WORKSPACE/$SERVICE_ZIP_NAME"
