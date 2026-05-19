@@ -12,30 +12,54 @@ It adds the following metadata to the S3 object:
 | `skipapproval`  | Flag to indicate if the requirement for manual approval should be overridden via the [auto-approve-all] or [skip-appproval] magic flags |
 | `skipapprovalenvs` | Comma delimited list of environments where the requirement for manual approval should be overridden via the [auto-approve-_ENV_] or [skip-appproval-_ENV_] magic flags (where _ENV_ is a the name of an environment eg `dev`, `production`) |
 
-## Action Inputs
-
-| Input | Required |Description | Example |
-|----------|----------|----------|----------|
-| artifact-bucket-name   | true     | The name of the artifact S3 bucket | artifact-bucket-1234 |
-| artifact-bucket-prefix | false     | The prefix of the artifact S3 bucket | test-folder |
-| signing-profile-name   | false     | The name of the Signing Profile in AWS | signing-profile-1234 |
-| aws-region             | false    | The name of the region to use when authenticating to AWS | eu-west-2 |
-| aws-role-arn           | false    | The ARN of the AWS to assume before uploading the artifact |arn:aws:iam::123456789000:role/role-name |
-| working-directory      | false    | The directory containing terraform | ./terraform |
 ## Usage Example
 
 Pull in the action in your workflow as below, making sure to specify the release version you require.
 
 ```yaml
 - name: Publish Terraform Artifact
-  uses: govuk-one-login/devplatform-upload-action/terraform@<version-number>
+  uses: govuk-one-login/devplatform-upload-action/terraform@<version>
   with:
     working-directory: './terraform'
     aws-role-arn: ${{ vars.SECURE_INFRA_PIPELINE_ROLE }}
     artifact-bucket-name: ${{ vars.SECURE_INFRA_SOURCE_BUCKET }}
-    signing-profile-name: ${{ vars.SECURE_INFRA_ZIP_SIGNING_KEY }}
+    kms-key-arn: ${{ vars.SECURE_INFRA_ZIP_SIGNING_KEY }}
     aws-region: 'eu-west-2'
 ```
+
+## Features
+
+### Download and package Terraform modules
+
+If your Terraform configuration uses modules stored in a separate private repository, you will need to pull and package them with your code. This is because the infra pipeline currently does not support authenticating to GitHub. The recommended way to do this is to have your workflow authenticate using a GitHub App with read access to your repositories.
+
+The example below shows a workflow that generates a token from a GitHub App with read access to `ipv-terraform-modules` repository. The Github token is passed to the action using `github-token` input. In addition, if your Terraform code lives in a different path to `working-directory`, provide a `terraform-root` path.
+
+```yaml
+steps:
+  - uses: actions/create-github-app-token@v3
+    id: app-token
+    with:
+      app-id: ${{ secrets.INFRAPIPELINE_CLIENTID }}
+      private-key: ${{ secrets.INFRAPIPELINE_PEMKEY }}
+      repositories: |
+        ipv-terraform-modules
+
+  - name: Publish Terraform Artifact
+    uses: govuk-one-login/devplatform-upload-action/terraform@<version>
+    with:
+      working-directory: './terraform'
+      terraform-root: './terraform/stacks/base-stacks'
+      aws-role-arn: ${{ vars.SECURE_INFRA_PIPELINE_ROLE }}
+      artifact-bucket-name: ${{ vars.SECURE_INFRA_SOURCE_BUCKET }}
+      kms-key-arn: ${{ vars.SECURE_INFRA_ZIP_SIGNING_KEY }}
+      github-token: ${{ steps.app-token.outputs.token }}
+      aws-region: 'eu-west-2'
+```
+
+Alternatively, you can setup your own workflow steps to fetch module dependencies before running devplatform-upload-action/terraform.
+
+For more information on GitHub apps usage, visit the [gds-way documentation page](https://gds-way.digital.cabinet-office.gov.uk/standards/source-code/using-github-actions.html#authorizing-github-actions)
 
 ## Requirements
 

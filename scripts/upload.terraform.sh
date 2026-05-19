@@ -25,6 +25,9 @@ function check_directory() {
 
 cd "$GITHUB_WORKSPACE"
 
+echo "» Checking working-directory"
+check_directory "$WORKING_DIRECTORY"
+
 if [[ -n "$GITHUB_TOKEN" ]]; then
   echo "::group::Downloading Terraform modules"
   echo "» Checking terraform-root"
