@@ -15,6 +15,11 @@ inputs:
   artifact-bucket-prefix:
     description: The path at which the artifact should be placed within the S3 bucket
     required: false
+  checkout-repo:
+    description: Check out the repo as the first step of the action. Defaults to "true".
+    type: boolean
+    required: false
+    default: true
   signing-profile-name:
     description: The ARN of the KMS key to sign artifact package. Available output from infrastructre pipeline stack.
     required: false
@@ -33,6 +38,7 @@ runs:
   using: composite
   steps:
     - name: Checkout Repository
+      if: ${{ inputs.checkout-repo == 'true' }}
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
     - name: Setup Terraform
