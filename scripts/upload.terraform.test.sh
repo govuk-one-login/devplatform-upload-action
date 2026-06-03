@@ -6,6 +6,7 @@ source scripts/utility.test.sh
 : "${ARTIFACT_BUCKET:?}"
 : "${ARTIFACT_PREFIX:=""}"
 : "${COMMIT_MESSAGE:=$(git log -1 --format=%s | head -n 1 | cut -c1-50)}"
+: "${GITHUB_TOKEN:=}"
 : "${VERSION:=}"
 : "${ZIP_FILE:=package.zip}"
 
@@ -31,3 +32,8 @@ verify-terraform-zip-contents "$S3_KEY"
 echo "✅ Verified zip contents successfully"
 verify-terraform-zipsum "$S3_ZIPSUM"
 echo "✅ Verified zipsum successfully"
+
+if [[ $GITHUB_TOKEN ]]; then
+  verify_git_auth_config "$GITHUB_TOKEN"
+  echo "✅ Verified authentication with GitHub token is configured successfully"
+fi

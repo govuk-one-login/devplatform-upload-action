@@ -54,7 +54,7 @@ jobs:
           aws-role-arn: ${{ vars.AWS_ROLE_ARN }}
           artifact-bucket-name: ${{ vars.ARTIFACT_SOURCE_BUCKET }}
           artifact-bucket-prefix: ${{ steps.get-branch-name.outputs.pretty-branch-name }}/upload-terraform-action-tests
-          working-directory: ${{ steps.upload-terraform-artifact.outputs.tf_path }}
+          source-path: ${{ steps.upload-terraform-artifact.outputs.tf_path }}
 
       - name: Check uploaded artifact
         run: scripts/upload.terraform.test.sh
@@ -116,7 +116,9 @@ jobs:
         env:
           ARTIFACT_BUCKET: ${{ vars.ARTIFACT_SOURCE_BUCKET }}
           ARTIFACT_PREFIX: ${{ steps.get-branch-name.outputs.pretty-branch-name }}/upload-terraform-scripts-tests
-          WORKING_DIRECTORY: terraform
+          GITHUB_TOKEN: dummy-github-token-1234
+          TF_MODULE_PATH: terraform
+          SOURCE_PATH: terraform
 
       - name: Check uploaded artifact
         run: scripts/upload.terraform.test.sh
@@ -127,3 +129,4 @@ jobs:
           COMMIT_MESSAGE: ${{ steps.upload-terraform-artifact.outputs.commit_message }}
           ZIP_FILE: package.zip
           VERSION: test-${{ github.sha }}
+          GITHUB_TOKEN: dummy-github-token-1234

@@ -2,7 +2,7 @@
 set -euo pipefail
 shopt -s extglob nocasematch
 
-: "${WORKING_DIRECTORY:?}"
+: "${SOURCE_PATH:?}"
 : "${ARTIFACT_BUCKET:?}"
 : "${ARTIFACT_PREFIX:=""}"
 : "${SIGNING_PROFILE:=""}"
@@ -10,22 +10,38 @@ shopt -s extglob nocasematch
 : "${COMMIT_MESSAGES:=}"
 : "${COMMIT_SHA:=$(git rev-parse HEAD)}"
 : "${GITHUB_REPOSITORY:?}"
+: "${GITHUB_TOKEN:=}"
+: "${TF_MODULE_PATH:=}"
 
 [[ ${ARTIFACT_PREFIX:-} ]] && s3_prefix=${ARTIFACT_PREFIX%%+(/)}/
 
-cd "$GITHUB_WORKSPACE"
-if [ ! -d "$WORKING_DIRECTORY" ]; then
-  echo "Error: Working directory $WORKING_DIRECTORY not found." >&2
-  exit 1
+function check_directory_exists() {
+  local directory=$1
+  if ! [[ -d $directory ]]; then
+    echo "Error: Directory $directory not found" >&2
+    exit 1
+  fi
+}
+
+echo "::group::Downloading Terraform module dependencies"
+echo "» Checking Terraform root directory exists"
+
+if [[ $GITHUB_TOKEN ]]; then
+  git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/govuk-one-login".insteadOf "ssh://git@github.com/govuk-one-login"
 fi
 
-cd "$WORKING_DIRECTORY"
-terraform get
+check_directory_exists "$TF_MODULE_PATH"
+terraform -chdir="${TF_MODULE_PATH}" get
+
+echo "» Terraform modules downloaded"
+echo "::endgroup::"
+
+echo "» Checking source path exists"
+check_directory_exists "$SOURCE_PATH"
 
 SERVICE_ZIP_NAME="service.zip"
 SERVICE_ZIP_PATH="$GITHUB_WORKSPACE/$SERVICE_ZIP_NAME"
-cd "$GITHUB_WORKSPACE"
-zip -r "$SERVICE_ZIP_PATH" "$WORKING_DIRECTORY"
+zip -r "$SERVICE_ZIP_PATH" "$SOURCE_PATH"
 
 ZIPSUM_FILE="zipsum.txt"
 SIGNATURE_FILE="ZipSignature"

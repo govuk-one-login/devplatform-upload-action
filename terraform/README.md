@@ -12,30 +12,92 @@ It adds the following metadata to the S3 object:
 | `skipapproval`  | Flag to indicate if the requirement for manual approval should be overridden via the [auto-approve-all] or [skip-appproval] magic flags |
 | `skipapprovalenvs` | Comma delimited list of environments where the requirement for manual approval should be overridden via the [auto-approve-_ENV_] or [skip-appproval-_ENV_] magic flags (where _ENV_ is a the name of an environment eg `dev`, `production`) |
 
-## Action Inputs
-
-| Input | Required |Description | Example |
-|----------|----------|----------|----------|
-| artifact-bucket-name   | true     | The name of the artifact S3 bucket | artifact-bucket-1234 |
-| artifact-bucket-prefix | false     | The prefix of the artifact S3 bucket | test-folder |
-| signing-profile-name   | false     | The name of the Signing Profile in AWS | signing-profile-1234 |
-| aws-region             | false    | The name of the region to use when authenticating to AWS | eu-west-2 |
-| aws-role-arn           | false    | The ARN of the AWS to assume before uploading the artifact |arn:aws:iam::123456789000:role/role-name |
-| working-directory      | false    | The directory containing terraform | ./terraform |
 ## Usage Example
 
 Pull in the action in your workflow as below, making sure to specify the release version you require.
 
 ```yaml
 - name: Publish Terraform Artifact
-  uses: govuk-one-login/devplatform-upload-action/terraform@<version-number>
+  uses: govuk-one-login/devplatform-upload-action/terraform@<SHA>
   with:
-    working-directory: './terraform'
+    source-path: './terraform'
+    terraform-module-path: './terraform/stacks/base-stacks'
     aws-role-arn: ${{ vars.SECURE_INFRA_PIPELINE_ROLE }}
     artifact-bucket-name: ${{ vars.SECURE_INFRA_SOURCE_BUCKET }}
     signing-profile-name: ${{ vars.SECURE_INFRA_ZIP_SIGNING_KEY }}
     aws-region: 'eu-west-2'
 ```
+
+### source-path vs terraform-module-path
+
+`source-path` input is the path to the directory to be packaged and uploaded. `terraform-module-path` should be used when your Terraform module is not located directly in `source-path`.
+This distinguishment is needed because the action will always attempt to download Terraform modules dependencies. The location of your Terraform module must be configured to correctly identify dependencies.
+
+For example:
+
+```
+my-repository
+├── terraform
+    ├── main.tf
+    ├── outputs.tf
+    ├── locals.tf
+    └── (...)
+```
+
+For the repository structure above, Terraform module files are located directly in the `terraform` directory. In this case, user should set `source-path=terraform`. `terraform-module-path` can be left unset.
+
+```
+my-repository
+└── terraform
+   └── stacks
+       ├── base-stacks
+       │   ├── main.tf
+       │   ├── outputs.tf
+       │   ├── locals.tf
+       │   └── (...)
+       └── env
+            ├── dev.tfvars
+            ├── build.tfvars
+            └── (...)
+```
+
+For the case above, Terraform module files are located in a subdirectory of `terraform`. Given configuration files like `.tfvars` are located in a different subdirectory, the user will need to package the `terraform` directory as a whole. In this case, the user should set `source-path=terraform` and `terraform-module-path=terraform/stacks/base-stacks`.
+
+## Features
+
+### Download and package Terraform modules
+
+If your Terraform configuration uses modules stored in a separate private repository, you will need to pull and package them with your code. This is because the infra pipeline currently does not support authenticating to GitHub. The recommended way to do this is to have your workflow authenticate using a GitHub App with read access to your repositories.
+
+The example below shows a workflow that generates a token from a GitHub App with read access to `ipv-terraform-modules` repository. The Github token is passed to the action using `github-token` input. In addition, if your Terraform code lives in a different path to `working-directory`, provide a `terraform-root` path.
+
+```yaml
+steps:
+  - uses: actions/create-github-app-token@<SHA>
+    id: app-token
+    with:
+      app-id: ${{ secrets.INFRAPIPELINE_CLIENTID }}
+      private-key: ${{ secrets.INFRAPIPELINE_PEMKEY }}
+      repositories: |
+        ipv-terraform-modules
+
+  - name: Publish Terraform Artifact
+    uses: govuk-one-login/devplatform-upload-action/terraform@<SHA>
+    with:
+      source-path: './terraform'
+      terraform-module-path: './terraform/stacks/base-stacks'
+      aws-role-arn: ${{ vars.SECURE_INFRA_PIPELINE_ROLE }}
+      artifact-bucket-name: ${{ vars.SECURE_INFRA_SOURCE_BUCKET }}
+      siging-profile-name: ${{ vars.SECURE_INFRA_ZIP_SIGNING_KEY }}
+      github-token: ${{ steps.app-token.outputs.token }}
+      aws-region: 'eu-west-2'
+```
+
+Alternatively, you can set up your own workflow steps to fetch module dependencies before running devplatform-upload-action/terraform.
+Module dependencies must be downloaded to the same directory as your Terraform code and located in a `.terraform` directory.
+`terraform get` command can be used for this, follow [documentation](https://developer.hashicorp.com/terraform/cli/commands/get) for guidance.
+
+For more information on GitHub apps usage, visit the [gds-way documentation page](https://gds-way.digital.cabinet-office.gov.uk/standards/source-code/using-github-actions.html#authorizing-github-actions)
 
 ## Requirements
 
