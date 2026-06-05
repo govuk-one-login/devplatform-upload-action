@@ -5,7 +5,7 @@ shopt -s extglob nocasematch
 : "${SOURCE_PATH:?}"
 : "${ARTIFACT_BUCKET:?}"
 : "${ARTIFACT_PREFIX:=""}"
-: "${SIGNING_PROFILE:=""}"
+: "${SIGNING_KMS_KEY_ARN:=""}"
 : "${HEAD_MESSAGE:=$(git log -1 --format=%s)}"
 : "${COMMIT_MESSAGES:=}"
 : "${COMMIT_SHA:=$(git rev-parse HEAD)}"
@@ -48,16 +48,16 @@ SIGNATURE_FILE="ZipSignature"
 PACKAGE_FILE="package.zip"
 md5sum "$SERVICE_ZIP_PATH" | cut -c -32 > $ZIPSUM_FILE
 
-if [[ -n "$SIGNING_PROFILE" ]]; then
+if [[ -n "$SIGNING_KMS_KEY_ARN" ]]; then
   aws kms sign \
-    --key-id "$SIGNING_PROFILE" \
+    --key-id "$SIGNING_KMS_KEY_ARN" \
     --message fileb://"$ZIPSUM_FILE" \
     --signing-algorithm RSASSA_PSS_SHA_256 \
     --message-type RAW \
     --output text \
     --query Signature | base64 --decode > $SIGNATURE_FILE
 else
-  echo "No SIGNING_PROFILE provided, skipping signing step."
+  echo "No SIGNING_KMS_KEY_ARN provided, skipping signing step."
   touch $SIGNATURE_FILE
 fi
 zip -r $PACKAGE_FILE "$SERVICE_ZIP_NAME" "$SIGNATURE_FILE"

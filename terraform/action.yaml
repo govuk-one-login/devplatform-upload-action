@@ -20,9 +20,11 @@ inputs:
     type: boolean
     required: false
     default: true
-  signing-profile-name:
-    description: The ARN of the KMS key to sign artifact package. Available output from infrastructre pipeline stack.
+  signing-kms-key-arn:
+    description: The ARN of the Signing KMS Key. This will be used to sign the artifact. If not provided, the artifact will be uploaded without signing.
     required: false
+  signing-profile-name:
+    description: The name of the Signing Profile. This has been deprecated and will be removed in a future release. Please use 'signing-kms-key-arn' instead.
   source-path:
     description: Path to the directory containing Terraform configuration files to package, sign and upload.
     required: false
@@ -51,6 +53,11 @@ runs:
         aws-region: ${{ inputs.aws-region }}
         role-session-name: github-actions-${{ github.sha }}
 
+    - name: Deprecated Signing Profile Check
+      if: ${{ inputs.signing-profile-name }}
+      shell: bash
+      run: |
+        echo "::warning::⚠️ 'signing-profile-name' is deprecated and will be removed in a future release! Please use 'signing-kms-key-arn' instead."
     - name: Execute Packaging, Signing, and Upload
       shell: bash
       run: ${{ github.action_path }}/../scripts/upload.terraform.sh
@@ -58,7 +65,7 @@ runs:
         SOURCE_PATH: ${{ inputs.source-path }}
         ARTIFACT_BUCKET: ${{ inputs.artifact-bucket-name }}
         ARTIFACT_PREFIX: ${{ inputs.artifact-bucket-prefix }}
-        SIGNING_PROFILE: ${{ inputs.signing-profile-name }}
+        SIGNING_KMS_KEY_ARN: ${{ inputs.signing-kms-key-arn || inputs.signing-profile-name }}
         HEAD_MESSAGE: ${{ github.event.head_commit.message }}
         COMMIT_MESSAGES: ${{ join(github.event.commits.*.message, ' | ') }}
         COMMIT_SHA: ${{ github.event.head_commit.id }}
