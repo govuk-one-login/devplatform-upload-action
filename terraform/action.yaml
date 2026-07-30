@@ -38,7 +38,6 @@ inputs:
   terraform-version:
     description: The version of Terraform to use. Defaults to latest.
     required: false
-    default: latest
 
 runs:
   using: composite
