@@ -18,6 +18,14 @@ set -euo pipefail
 : "${TEMPLATE_FILE:=template.yaml}"
 : "${TEMPLATE_OUT_FILE:=cf-template.yaml}"
 
+add_lambda_metadata() {
+  local lambda="$1"
+  if uri=$(yq --exit-status ".Resources.${lambda}.Properties | .CodeUri // .ContentUri" "$TEMPLATE_OUT_FILE"); then
+    echo "❭ $lambda"
+    aws s3 cp "$uri" "$uri" --metadata "$metadata"
+  fi
+}
+
 echo "» Parsing Lambdas to be signed"
 
 mapfile -t lambdas < <(yq \
@@ -68,12 +76,11 @@ column -ts= < <(tr "," "\n" <<< "$metadata")
 echo "::endgroup::"
 echo "::group::Writing Lambda provenance"
 
-for lambda in "${lambdas[@]}"; do
-  if uri=$(yq --exit-status ".Resources.${lambda}.Properties | .CodeUri // .ContentUri" "$TEMPLATE_OUT_FILE"); then
-    echo "❭ $lambda"
-    aws s3 cp "$uri" "$uri" --metadata "$metadata"
-  fi
-done
+export -f add_lambda_metadata
+export TEMPLATE_OUT_FILE metadata
+
+# Copy 5 in parallel
+parallel -j 5 add_lambda_metadata ::: "${lambdas[@]}"
 
 echo "::endgroup::"
 
