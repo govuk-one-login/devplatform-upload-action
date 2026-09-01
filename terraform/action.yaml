@@ -30,7 +30,9 @@ inputs:
     required: false
     default: ./terraform
   terraform-module-path:
-    description: Subdirectory within source-path that contains the Terraform module to be deployed. Defaults to source-path.
+    description: |
+      Subdirectory within source-path that contains the Terraform module to be deployed. Defaults to source-path.
+      Accepts multiple newline-separated paths to run `terraform get` in each.
     required: false
   github-token:
     description: The token to authenticate to the GitHub API used when downloading Terraform modules from private One Login repositories.

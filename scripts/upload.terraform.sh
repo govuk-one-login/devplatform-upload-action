@@ -30,8 +30,12 @@ if [[ $GITHUB_TOKEN ]]; then
   git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/govuk-one-login".insteadOf "ssh://git@github.com/govuk-one-login"
 fi
 
-check_directory_exists "$TF_MODULE_PATH"
-terraform -chdir="${TF_MODULE_PATH}" get
+while IFS= read -r module_path; do
+  [[ -z "$module_path" ]] && continue
+  check_directory_exists "$module_path"
+  echo "» Running terraform get in $module_path"
+  terraform -chdir="${module_path}" get
+done <<< "$TF_MODULE_PATH"
 
 echo "» Terraform modules downloaded"
 echo "::endgroup::"
