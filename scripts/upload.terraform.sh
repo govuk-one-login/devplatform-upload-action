@@ -77,7 +77,7 @@ else
     skip_envs=""
   fi
 fi
-COMMIT_MESSAGE=$(echo "${HEAD_MESSAGE}" | tr '[]' '()' | tr '\n' ' ' | tr ',' ';' | head -n 1 | cut -c1-50 | xargs)
+COMMIT_MESSAGE=$(echo "${HEAD_MESSAGE}" | tr '[]' '()' | tr '\n' ' ' | tr ',' ';' | tr -d '"' | head -n 1 | cut -c1-50 | xargs)
 METADATA="repository=$GITHUB_REPOSITORY,commitsha=$COMMIT_SHA,commitmessage=$COMMIT_MESSAGE,skipapproval=${skip_approval:-false}"
 if [ -n "$skip_envs" ]; then
   METADATA="$METADATA,skipapprovalenvs='$skip_envs'"
