@@ -43,7 +43,7 @@ jobs:
           path: upload-action
 
       - name: Upload SAM app
-        uses: ./upload-action
+        uses: ./upload-action/sam
         id: upload-sam-app
         with:
           aws-role-arn: ${{ vars.AWS_ROLE_ARN }}
