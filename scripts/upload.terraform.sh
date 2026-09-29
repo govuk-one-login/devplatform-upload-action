@@ -77,10 +77,32 @@ else
     skip_envs=""
   fi
 fi
-COMMIT_MESSAGE=$(echo "${HEAD_MESSAGE}" | tr '[]' '()' | tr '\n' ' ' | tr ',' ';' | head -n 1 | cut -c1-50 | xargs)
-METADATA="repository=$GITHUB_REPOSITORY,commitsha=$COMMIT_SHA,commitmessage=$COMMIT_MESSAGE,skipapproval=${skip_approval:-false}"
-if [ -n "$skip_envs" ]; then
-  METADATA="$METADATA,skipapprovalenvs='$skip_envs'"
+
+echo "::group::Gathering release metadata"
+if [[ -n "${GITHUB_ACTION_PATH:-}" ]]; then
+  SCRIPT_PATH="${GITHUB_ACTION_PATH:-.}/../"
+else
+  SCRIPT_PATH=""
 fi
-aws s3 cp $PACKAGE_FILE "s3://${ARTIFACT_BUCKET}/${s3_prefix:-}$PACKAGE_FILE" --metadata "${METADATA}"
-aws s3 cp $ZIPSUM_FILE "s3://${ARTIFACT_BUCKET}/${s3_prefix:-}$ZIPSUM_FILE" --metadata "${METADATA}"
+if ! METADATA_VALUES="$("$SCRIPT_PATH.github/scripts/get-release-metadata.sh")"; then
+  echo "❌ Could not retrieve metadata"
+  exit 1
+fi
+eval "$METADATA_VALUES"
+
+COMMIT_MESSAGE=$(echo "${HEAD_MESSAGE}" | tr '[]' '()' | tr '\n' ' ' | tr ',' ';' | head -n 1 | cut -c1-50 | xargs)
+release_metadata=(
+  "repository=$GITHUB_REPOSITORY"
+  "commitsha=$COMMIT_SHA"
+  "commitmessage=$COMMIT_MESSAGE"
+  "skipapproval=${skip_approval:-false}"
+  "mergetime=$MERGE_TIME"
+  "commitauthor=$COMMIT_AUTHOR"
+)
+if [ -n "$skip_envs" ]; then
+  release_metadata+=("skipapprovalenvs='$skip_envs'")
+fi
+METADATA=$(IFS="," && echo "${release_metadata[*]}")
+
+aws s3 cp "$PACKAGE_FILE" "s3://${ARTIFACT_BUCKET}/${s3_prefix:-}$PACKAGE_FILE" --metadata "${METADATA}"
+aws s3 cp "$ZIPSUM_FILE" "s3://${ARTIFACT_BUCKET}/${s3_prefix:-}$ZIPSUM_FILE" --metadata "${METADATA}"

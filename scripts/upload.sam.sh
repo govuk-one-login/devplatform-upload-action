@@ -43,6 +43,26 @@ sam package \
 echo "::endgroup::"
 echo "::group::Gathering release metadata"
 
+if [[ -n "${GITHUB_ACTION_PATH:-}" ]]; then
+  FULL_ACTION_PATH="${GITHUB_ACTION_PATH}"
+  # the sam upload can use either upload-action or upload-action/sam
+  # so need to walk up parent full path until we find where .github lives
+  while [[ "${FULL_ACTION_PATH}" != "/" ]] && [[ ! -d "${FULL_ACTION_PATH}/.github" ]]; do
+    FULL_ACTION_PATH="$(cd "${FULL_ACTION_PATH}/.." && pwd)"
+  done
+  SCRIPT_PATH="${FULL_ACTION_PATH}"
+else
+  SCRIPT_PATH="$(git rev-parse --show-toplevel)"
+fi
+
+METADATA_SCRIPT="${SCRIPT_PATH}/.github/scripts/get-release-metadata.sh"
+
+if ! METADATA_VALUES="$("$METADATA_SCRIPT")"; then
+  echo "❌ Could not retrieve metadata"
+  exit 1
+fi
+eval "$METADATA_VALUES"
+
 [[ $COMMIT_MESSAGES =~ \[(skip canary|skip canaries|no canary|canary skip)\] ]] && skip_canary=1
 [[ $COMMIT_MESSAGES =~ \[(close circuit breaker|end circuit breaker)\] ]] && close_circuit_breaker=1
 
@@ -50,8 +70,8 @@ release_metadata=(
   "commitsha=$GITHUB_SHA"                                                       # Head commit SHA
   "committag=$(git describe --tags --first-parent --always)"                    # Head commit tag or short SHA
   "commitmessage='$(echo "${HEAD_MESSAGE//\'/\\\'}" | head -n 1 | cut -c1-50)'" # Shorten head commit subject and escape '
-  "mergetime=$(TZ=UTC0 git log -1 --format=%cd --date=format-local:"%F %T")"    # Merge to main UTC timestamp
-  "commitauthor='$GITHUB_ACTOR'"
+  "mergetime=$MERGE_TIME"
+  "commitauthor='$COMMIT_AUTHOR'"
   "repository=$GITHUB_REPOSITORY"
   "skipcanary=${skip_canary:-0}"
   "closecircuitbreaker=${close_circuit_breaker:-0}"
