@@ -23,7 +23,8 @@ echo "» Parsing Lambdas to be signed"
 mapfile -t lambdas < <(yq \
   '.Resources[] | select(
     .Type=="AWS::Serverless::Function" or
-    .Type=="AWS::Serverless::LayerVersion"
+    .Type=="AWS::Serverless::LayerVersion" or
+    .Type=="AWS::Serverless::WebFunction"
   ) | key' "$TEMPLATE_FILE")
 
 echo "ℹ Found ${#lambdas[@]} Lambda(s) in the template"
